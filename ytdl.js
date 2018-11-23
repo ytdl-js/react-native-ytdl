@@ -977,6 +977,8 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
 
 
 
+
+
 /**
  * Gets info from a video without getting additional formats.
  *
@@ -1066,14 +1068,87 @@ getBasicInfo = (id, options, callback) => {
 
 
 
-getBasicInfo("aYr4fDuLhXg",{},
+
+
+getFullInfo = (id, options, callback) => {
+  return this.getBasicInfo(id, options, (err, info) => {
+    if (err) return callback(err);
+    if (info.formats.length ||
+        info.dashmpd || info.dashmpd2 || info.hlsvp) {
+      const html5playerfile = urllib.resolve(VIDEO_URL, info.html5player);
+      sig.getTokens(html5playerfile, options, (err, tokens) => {
+        if (err) return callback(err);
+
+        sig.decipherFormats(info.formats, tokens, options.debug);
+
+        let funcs = [];
+
+        if (info.dashmpd) {
+          info.dashmpd = decipherURL(info.dashmpd, tokens);
+          funcs.push(getDashManifest.bind(null, info.dashmpd, options));
+        }
+
+        if (info.dashmpd2) {
+          info.dashmpd2 = decipherURL(info.dashmpd2, tokens);
+          funcs.push(getDashManifest.bind(null, info.dashmpd2, options));
+        }
+
+        if (info.hlsvp) {
+          info.hlsvp = decipherURL(info.hlsvp, tokens);
+          funcs.push(getM3U8.bind(null, info.hlsvp, options));
+        }
+
+        util.parallel(funcs, (err, results) => {
+          if (err) return callback(err);
+          if (results[0]) { mergeFormats(info, results[0]); }
+          if (results[1]) { mergeFormats(info, results[1]); }
+          if (results[2]) { mergeFormats(info, results[2]); }
+          if (!info.formats.length) {
+            callback(Error('No formats found'));
+            return;
+          }
+
+          if (options.debug) {
+            info.formats.forEach((format) => {
+              const itag = format.itag;
+              if (!FORMATS[itag]) {
+                console.warn(`No format metadata for itag ${itag} found`);
+              }
+            });
+          }
+
+          info.formats.forEach(util.addFormatMeta);
+          info.formats.sort(util.sortFormats);
+          info.full = true;
+          callback(null, info);
+        });
+      });
+    } else {
+      callback(Error('This video is unavailable'));
+    }
+  });
+};
+
+
+
+
+// getBasicInfo("aYr4fDuLhXg",{},
+//   (e,info)=>{
+//     console.log("e "+e)
+//     console.log("MOHALLA ")
+//     console.log("info "+JSON.stringify(info))
+//   }
+
+// )
+
+
+getFullInfo("aYr4fDuLhXg",{},
   (e,info)=>{
     console.log("e "+e)
-    console.log("MOHALLA ")
+    console.log("MAHALO ")
     console.log("info "+JSON.stringify(info))
   }
 
 )
-
 
 
