@@ -1,4 +1,4 @@
-import {FORMATS} from './formats'
+import FORMATS from './formats'
 const Entities = require("html-entities").AllHtmlEntities;
 const querystring = require("query-string");
 
