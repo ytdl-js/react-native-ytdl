@@ -54,7 +54,7 @@ export const decipher = (tokens, sig) => {
   return sig.join("");
 };
 
-export const  swapHeadAndPosition = (arr, position) => {
+export const swapHeadAndPosition = (arr, position) => {
   const first = arr[0];
   arr[0] = arr[position % arr.length];
   arr[position] = first;
@@ -157,17 +157,16 @@ export const extractActions = body => {
   return tokens;
 };
 
-
 export const updateQueryStringParameter = (uri, key, value) => {
-    var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
-    var separator = uri.indexOf("?") !== -1 ? "&" : "?";
-    if (uri.match(re)) {
-      return uri.replace(re, "$1" + key + "=" + value + "$2");
-    } else {
-      return uri + separator + key + "=" + value;
-    }
-  };
-  export const setDownloadURL = (format, sig, debug) => {
+  var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+  var separator = uri.indexOf("?") !== -1 ? "&" : "?";
+  if (uri.match(re)) {
+    return uri.replace(re, "$1" + key + "=" + value + "$2");
+  } else {
+    return uri + separator + key + "=" + value;
+  }
+};
+export const setDownloadURL = (format, sig, debug) => {
   let decodedUrl;
   if (format.url) {
     decodedUrl = format.url;
@@ -210,4 +209,3 @@ export const decipherFormats = (formats, tokens, debug) => {
     setDownloadURL(format, sig, debug);
   });
 };
-
