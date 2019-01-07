@@ -7,9 +7,10 @@ let ytdl = {
   validateURL: util.validateURL,
   getURLVideoID: util.getURLVideoID,
   getVideoID: util.getVideoID,
+  chooseFormat:util.chooseFormat,
 
   getBasicInfo: info.getBasicInfo,
-  getInfo: info.getFullInfo
+  getInfo: info.getFullInfo,
 };
 
 export default ytdl;
