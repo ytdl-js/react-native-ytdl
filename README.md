@@ -15,8 +15,14 @@ npm install react-native-ytdl
 ```js
 import ytdl from "react-native-ytdl"
 
-ytdl('http://www.youtube.com/watch?v=A02s8omM_hI')
-  .pipe(fs.createWriteStream('video.flv'));
+videoID = "04GiqLjRO3A"
+ytdl.getInfo(videoID, {}, (err, info) => {
+  if (err) console.log(err);
+  let format = ytdl.chooseFormat(info.formats, { quality: '134' });
+  if (format) {
+    console.log('Format found!');
+  }
+});
 ```
 
 
