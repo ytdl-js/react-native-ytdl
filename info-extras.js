@@ -1,13 +1,10 @@
-const url = require("url");
-
-const Entities = require("html-entities").AllHtmlEntities;
 const querystring = require("query-string");
+const url = require("url");
+const Entities = require("html-entities").AllHtmlEntities;
+
 import {
   between,
   stripHTML,
-  parallel,
-  addFormatMeta,
-  sortFormats
 } from "./util";
 
 const VIDEO_URL = "https://www.youtube.com/watch?v=";
@@ -15,11 +12,26 @@ export const getMetaItem = (body, name) => {
   return between(body, `<meta itemprop="${name}" content="`, '">');
 };
 
+
+/**
+ * Get video description from html
+ *
+ * @param {string} html
+ * @return {string}
+ */
 export const getVideoDescription = html => {
   const regex = /<p.*?id="eow-description".*?>(.+?)<\/p>[\n\r\s]*?<\/div>/im;
   const description = html.match(regex);
   return description ? Entities.decode(stripHTML(description[1])) : "";
 };
+
+
+/**
+ * Get video media (extra information) from html
+ *
+ * @param {string} body
+ * @return {Object}
+ */
 export const getVideoMedia = body => {
   let mediainfo = between(
     body,
@@ -66,6 +78,12 @@ export const getVideoMedia = body => {
   return media;
 };
 
+/**
+ * Get video Owner from html.
+ *
+ * @param {string} body
+ * @return {Object}
+ */
 const userRegexp = /<a href="\/user\/([^"]+)/;
 const verifiedRegexp = /<span .*?(aria-label="Verified")(.*?(?=<\/span>))/;
 export const getAuthor = body => {
@@ -97,7 +115,10 @@ export const getAuthor = body => {
   return {
     id: channelID,
     name: channelName,
-    avatar: "",
+    avatar: url.resolve(
+      VIDEO_URL,
+      between(ownerinfo, 'data-thumb="', '"')
+    ),
     verified: !!verifiedMatch,
     user: username,
     channel_url: "https://www.youtube.com/channel/" + channelID,
@@ -105,9 +126,24 @@ export const getAuthor = body => {
   };
 };
 
+/**
+ * Get video published at from html.
+ *
+ * @param {string} body
+ * @return {string}
+ */
 export const getPublished = body => {
   return Date.parse(getMetaItem(body, "datePublished"));
 };
+
+
+/**
+ * Get video published at from html.
+ * Credits to https://github.com/paixaop.
+ *
+ * @param {string} body
+ * @return {Array.<Object>}
+ */
 export const getRelatedVideos = body => {
   let jsonStr = between(body, "'RELATED_PLAYER_ARGS': {\"rvs\":", "},");
   try {
@@ -115,5 +151,5 @@ export const getRelatedVideos = body => {
   } catch (err) {
     return [];
   }
-  return jsonStr.split(",").map(link => encodeURI(link));
+  return jsonStr.split(",").map(link => querystring.parse(link));
 };

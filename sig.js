@@ -1,4 +1,5 @@
 this.cache = new Map();
+import {changeURLParameter,removeURLParameter} from "./util"
 export const getTokens = (html5playerfile, options, callback) => {
   let key, cachedTokens;
   const rs = /(?:html5)?player[-_]([a-zA-Z0-9\-_]+)(?:\.js|\/)/.exec(
@@ -28,6 +29,14 @@ export const getTokens = (html5playerfile, options, callback) => {
       .catch(err => console.error(err));
   }
 };
+
+/**
+ * Decipher a signature based on action tokens.
+ *
+ * @param {Array.<string>} tokens
+ * @param {string} sig
+ * @return {string}
+ */
 export const decipher = (tokens, sig) => {
   sig = sig.split("");
   for (let i = 0, len = tokens.length; i < len; i++) {
@@ -53,7 +62,13 @@ export const decipher = (tokens, sig) => {
   }
   return sig.join("");
 };
-
+/**
+ * Swaps the first element of an array with one of given position.
+ *
+ * @param {Array.<Object>} arr
+ * @param {number} position
+ * @return {Array.<Object>}
+ */
 export const swapHeadAndPosition = (arr, position) => {
   const first = arr[0];
   arr[0] = arr[position % arr.length];
@@ -105,6 +120,26 @@ const sliceRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${sliceStr}`, "m");
 const spliceRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${spliceStr}`, "m");
 const swapRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${swapStr}`, "m");
 
+/**
+ * Extracts the actions that should be taken to decipher a signature.
+ *
+ * This searches for a function that performs string manipulations on
+ * the signature. We already know what the 3 possible changes to a signature
+ * are in order to decipher it. There is
+ *
+ * * Reversing the string.
+ * * Removing a number of characters from the beginning.
+ * * Swapping the first character with another position.
+ *
+ * Note, `Array#slice()` used to be used instead of `Array#splice()`,
+ * it's kept in case we encounter any older html5player files.
+ *
+ * After retrieving the function that does this, we can see what actions
+ * it takes on a signature.
+ *
+ * @param {string} body
+ * @return {Array.<string>}
+ */
 export const extractActions = body => {
   const objResult = actionsObjRegexp.exec(body);
   const funcResult = actionsFuncRegexp.exec(body);
@@ -157,15 +192,11 @@ export const extractActions = body => {
   return tokens;
 };
 
-export const updateQueryStringParameter = (uri, key, value) => {
-  var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
-  var separator = uri.indexOf("?") !== -1 ? "&" : "?";
-  if (uri.match(re)) {
-    return uri.replace(re, "$1" + key + "=" + value + "$2");
-  } else {
-    return uri + separator + key + "=" + value;
-  }
-};
+/**
+ * @param {Object} format
+ * @param {string} sig
+ * @param {boolean} debug
+ */
 export const setDownloadURL = (format, sig, debug) => {
   let decodedUrl;
   if (format.url) {
@@ -186,23 +217,32 @@ export const setDownloadURL = (format, sig, debug) => {
     return;
   }
 
+
   // Make some adjustments to the final url.
 
+  
   // Deleting the `search` part is necessary otherwise changes to
   // `query` won't reflect when running `url.format()`
+  decodedUrl = removeURLParameter(decodedUrl, "search");
 
   // This is needed for a speedier download.
   // See https://github.com/fent/node-ytdl-core/issues/127
-  decodedUrl = updateQueryStringParameter(decodedUrl, "ratebypass", "yes");
+  decodedUrl = changeURLParameter(decodedUrl, "ratebypass", "yes");
 
   if (sig) {
-    decodedUrl = updateQueryStringParameter(decodedUrl, "signature", sig);
+    decodedUrl = changeURLParameter(decodedUrl, "signature", sig);
   }
 
   format.url = decodedUrl;
-  console.log("format.url: " + format.url);
 };
 
+/**
+ * Applies `sig.decipher()` to all format URL's.
+ *
+ * @param {Array.<Object>} formats
+ * @param {Array.<string>} tokens
+ * @param {boolean} debug
+ */
 export const decipherFormats = (formats, tokens, debug) => {
   formats.forEach(format => {
     const sig = tokens && format.s ? decipher(tokens, format.s) : null;

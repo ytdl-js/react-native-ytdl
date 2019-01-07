@@ -1,13 +1,13 @@
 const querystring = require("querystring");
 
-import FORMATS from "./formats";
-import { getTokens, decipherFormats } from "./sig";
+import { getTokens, decipherFormats,decipher } from "./sig";
 import {
   between,
   stripHTML,
   parallel,
   addFormatMeta,
-  sortFormats
+  sortFormats,
+  parseFormats
 } from "./util";
 import {
   getAuthor,
@@ -16,6 +16,7 @@ import {
   getVideoMedia,
   getRelatedVideos
 } from "./info-extras";
+import FORMATS from "./formats";
 
 const VIDEO_URL = "https://www.youtube.com/watch?v=";
 const EMBED_URL = "https://www.youtube.com/embed/";
@@ -47,11 +48,6 @@ export const getBasicInfo = (id, options, callback) => {
   fetch(url)
     .then(body => body.text())
     .then(body => {
-      console.log("body: " + body.length);
-
-      err = null;
-      res = null;
-
       // Check if there are any errors with this video page.
       const unavailableMsg = between(body, '<div id="player-unavailable"', ">");
       if (
@@ -106,7 +102,6 @@ export const getBasicInfo = (id, options, callback) => {
         fetch(url)
           .then(body => body.text())
           .then(body => {
-            if (err) return callback(err);
             config = between(
               body,
               "t.setConfig({'PLAYER_CONFIG': ",
@@ -114,12 +109,20 @@ export const getBasicInfo = (id, options, callback) => {
             );
             gotConfig(id, options, additional, config, true, callback);
           })
-          .catch(err => console.error(err));
+          .catch(err => callback(err));
       }
     })
-    .catch(error => console.error(error));
+    .catch(error => callback(error));
 };
 
+/**
+ * @param {Object} id
+ * @param {Object} options
+ * @param {Object} additional
+ * @param {Object} config
+ * @param {boolean} fromEmbed
+ * @param {Function(Error, Object)} callback
+ */
 export const gotConfig = (
   id,
   options,
@@ -153,10 +156,8 @@ export const gotConfig = (
   )
     .then(body => body.text())
     .then(body => {
-      // console.log("Got response: "+body.length )
 
       let info = querystring.parse(body);
-      // console.log('info: ' + JSON.stringify(info)  )
 
       if (info.status === "fail") {
         if (
@@ -212,22 +213,29 @@ export const gotConfig = (
 
       callback(null, info);
     })
-    .catch(err => console.error(err));
+    .catch(err => callback(err));
 };
+
+/**
+ * Gets info from a video additional formats and deciphered URLs.
+ *
+ * @param {string} id
+ * @param {Object} options
+ * @param {Function(Error, Object)} callback
+ */
 export const getFullInfo = (id, options, callback) => {
   return getBasicInfo(id, options, (err, info) => {
     if (err) return callback(err);
 
     if (info.formats.length || info.dashmpd || info.dashmpd2 || info.hlsvp) {
       const html5playerfile = "https://" + INFO_HOST + info.html5player;
-      // console.log("html5playerfile: "+html5playerfile)
+
       getTokens(html5playerfile, options, (err, tokens) => {
         if (err) return callback(err);
 
-        // console.log("info.formats: "+JSON.stringify(info.formats))
+    
         decipherFormats(info.formats, tokens, options.debug);
-        // console.log("after info.formats: "+JSON.stringify(info.formats))
-
+    
         let funcs = [];
 
         if (info.dashmpd) {
@@ -282,18 +290,56 @@ export const getFullInfo = (id, options, callback) => {
   });
 };
 
-export const parseFormats = info => {
-  let formats = [];
-  if (info.url_encoded_fmt_stream_map) {
-    formats = formats.concat(info.url_encoded_fmt_stream_map.split(","));
-  }
-  if (info.adaptive_fmts) {
-    formats = formats.concat(info.adaptive_fmts.split(","));
-  }
+/**
+ * @param {string} url
+ * @param {Array.<string>} tokens
+ */
+const decipherURL = (url, tokens) => {
+  return url.replace(/\/s\/([a-fA-F0-9.]+)/, (_, s) => {
+    return "/signature/" + decipher(tokens, s);
+  });
+};
 
-  formats = formats.map(format => querystring.parse(format));
-  delete info.url_encoded_fmt_stream_map;
-  delete info.adaptive_fmts;
 
-  return formats;
+/**
+ * Merges formats from DASH or M3U8 with formats from video info page.
+ *
+ * @param {Object} info
+ * @param {Object} formatsMap
+ */
+const mergeFormats = (info, formatsMap) => {
+  info.formats.forEach(f => {
+    if (!formatsMap[f.itag]) {
+      formatsMap[f.itag] = f;
+    }
+  });
+  info.formats = [];
+  for (let itag in formatsMap) {
+    info.formats.push(formatsMap[itag]);
+  }
+};
+//TODO: Find a way to implement getDashManifest functions, dont forget to add comments
+
+/**
+ * Gets additional formats.
+ *
+ * @param {string} url
+ * @param {Object} options
+ * @param {Function(!Error, Array.<Object>)} callback
+ */
+const getM3U8 = (url, options, callback) => {
+  url = "https://" + INFO_HOST + url;
+  request(url, options.requestOptions, (err, res, body) => {
+    if (err) return callback(err);
+
+    let formats = {};
+    body
+      .split("\n")
+      .filter(line => /https?:\/\//.test(line))
+      .forEach(line => {
+        const itag = line.match(/\/itag\/(\d+)\//)[1];
+        formats[itag] = { itag: itag, url: line };
+      });
+    callback(null, formats);
+  });
 };

@@ -1,8 +1,13 @@
 const querystring = require("query-string");
 const url = require("url");
-
 import FORMATS from "./formats";
 
+/**
+ * Parses a string representation of amount of milliseconds.
+ *
+ * @param {string} time
+ * @return {number}
+ */
 const timeRegexp = /(?:(\d+)h)?(?:(\d+)m(?!s))?(?:(\d+)s)?(?:(\d+)(?:ms)?)?/;
 export const parseTime = time => {
   const result = timeRegexp.exec(time.toString());
@@ -30,6 +35,13 @@ const videoEncodingRanks = {
   "H.264": 5
 };
 
+/**
+ * Sort formats from highest quality to lowest.
+ * By resolution, then video bitrate, then audio bitrate.
+ *
+ * @param {Object} a
+ * @param {Object} b
+ */
 export const sortFormats = (a, b) => {
   const ares = a.resolution ? parseInt(a.resolution.slice(0, -1), 10) : 0;
   const bres = b.resolution ? parseInt(b.resolution.slice(0, -1), 10) : 0;
@@ -75,6 +87,89 @@ export const sortFormats = (a, b) => {
     return bfeats - afeats;
   }
 };
+
+/**
+ * Choose a format depending on the given options.
+ *
+ * @param {Array.<Object>} formats
+ * @param {Object} options
+ * @return {Object|Error}
+ */
+export const chooseFormat = (formats, options) => {
+  if (typeof options.format === 'object') {
+    return options.format;
+  }
+
+  if (options.filter) {
+    formats = filterFormats(formats, options.filter);
+    if (formats.length === 0) {
+      return Error('No formats found with custom filter');
+    }
+  }
+
+  let format;
+  const quality = options.quality || 'highest';
+  const getBitrate = (f) => {
+    let s = f.bitrate.split('-');
+    return parseFloat(s[s.length - 1], 10);
+  };
+  switch (quality) {
+    case 'highest':
+      format = formats[0];
+      break;
+
+    case 'lowest':
+      format = formats[formats.length - 1];
+      break;
+
+    case 'highestaudio':
+      formats = filterFormats(formats, 'audio');
+      format = null;
+      for (let f of formats) {
+        if (!format
+          || f.audioBitrate > format.audioBitrate
+          || (f.audioBitrate === format.audioBitrate && format.encoding && !f.encoding))
+          format = f;
+      }
+      break;
+
+    case 'highestvideo':
+      formats = filterFormats(formats, 'video');
+      format = null;
+      for (let f of formats) {
+        if (!format
+          || getBitrate(f) > getBitrate(format)
+          || (getBitrate(f) === getBitrate(format) && format.audioEncoding && !f.audioEncoding))
+          format = f;
+      }
+      break;
+
+    default: {
+      let getFormat = (itag) => {
+        return formats.find((format) => format.itag === '' + itag);
+      };
+      if (Array.isArray(quality)) {
+        quality.find((q) => format = getFormat(q));
+      } else {
+        format = getFormat(quality);
+      }
+    }
+
+  }
+
+  if (!format) {
+    return Error('No such format found: ' + quality);
+  }
+  return format;
+};
+
+
+
+/**
+ * @param {Array.<Object>} formats
+ * @param {Function} filter
+ * @return {Array.<Object>}
+ */
 export const filterFormats = (formats, filter) => {
   let fn;
   switch (filter) {
@@ -108,12 +203,29 @@ export const filterFormats = (formats, filter) => {
   return formats.filter(fn);
 };
 
+
+/**
+ * String#indexOf() that supports regex too.
+ *
+ * @param {string} haystack
+ * @param {string|RegExp} needle
+ * @return {number}
+ */
 export const indexOf = (haystack, needle) => {
   return needle instanceof RegExp
     ? haystack.search(needle)
     : haystack.indexOf(needle);
 };
 
+
+/**
+ * Extract string inbetween another.
+ *
+ * @param {string} haystack
+ * @param {string} left
+ * @param {string} right
+ * @return {string}
+ */
 export const between = (haystack, left, right) => {
   let pos = indexOf(haystack, left);
   if (pos === -1) {
@@ -127,14 +239,6 @@ export const between = (haystack, left, right) => {
   haystack = haystack.slice(0, pos);
   return haystack;
 };
-
-
-
-
-
-
-
-
 
 /**
  * Get video ID.
@@ -152,37 +256,38 @@ export const between = (haystack, left, right) => {
  * @return {string|Error}
  */
 const validQueryDomains = new Set([
-  'youtube.com',
-  'www.youtube.com',
-  'm.youtube.com',
-  'music.youtube.com',
-  'gaming.youtube.com',
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "music.youtube.com",
+  "gaming.youtube.com"
 ]);
 const validPathDomains = new Set([
-  'youtu.be',
-  'youtube.com',
-  'www.youtube.com',
+  "youtu.be",
+  "youtube.com",
+  "www.youtube.com"
 ]);
-export const getURLVideoID = (link) => {
+export const getURLVideoID = link => {
   const parsed = url.parse(link, true);
   let id = parsed.query.v;
   if (validPathDomains.has(parsed.hostname) && !id) {
-    const paths = parsed.pathname.split('/');
+    const paths = parsed.pathname.split("/");
     id = paths[paths.length - 1];
   } else if (parsed.hostname && !validQueryDomains.has(parsed.hostname)) {
-    return Error('Not a YouTube domain');
+    return Error("Not a YouTube domain");
   }
   if (!id) {
-    return Error('No video id found: ' + link);
+    return Error("No video id found: " + link);
   }
   id = id.substring(0, 11);
   if (!validateID(id)) {
-    return TypeError(`Video id (${id}) does not match expected ` +
-      `format (${idRegex.toString()})`);
+    return TypeError(
+      `Video id (${id}) does not match expected ` +
+        `format (${idRegex.toString()})`
+    );
   }
   return id;
 };
-
 
 /**
  * Gets video ID either from a url or by checking if the given string
@@ -191,14 +296,13 @@ export const getURLVideoID = (link) => {
  * @param {string} str
  * @return {string|Error}
  */
-export const getVideoID = (str) => {
+export const getVideoID = str => {
   if (validateID(str)) {
     return str;
   } else {
     return getURLVideoID(str);
   }
 };
-
 
 /**
  * Returns true if given id satifies YouTube's id format.
@@ -207,10 +311,9 @@ export const getVideoID = (str) => {
  * @return {boolean}
  */
 const idRegex = /^[a-zA-Z0-9-_]{11}$/;
-export const validateID = (id) => {
+export const validateID = id => {
   return idRegex.test(id);
 };
-
 
 /**
  * Checks wether the input string includes a valid id.
@@ -218,22 +321,16 @@ export const validateID = (id) => {
  * @param {string} string
  * @return {boolean}
  */
-export const validateURL = (string) => {
+export const validateURL = string => {
   return !(getURLVideoID(string) instanceof Error);
 };
 
 
 
-
-
-
-
-
-
-
-
-
-
+/**
+ * @param {Object} info
+ * @return {Array.<Object>}
+ */
 export const parseFormats = info => {
   let formats = [];
   if (info.url_encoded_fmt_stream_map) {
@@ -250,6 +347,9 @@ export const parseFormats = info => {
   return formats;
 };
 
+/**
+ * @param {Object} format
+ */
 export const addFormatMeta = format => {
   const meta = FORMATS[format.itag];
   for (let key in meta) {
@@ -260,7 +360,12 @@ export const addFormatMeta = format => {
   format.isHLS = /\/manifest\/hls_(variant|playlist)\//.test(format.url);
   format.isDashMPD = /\/manifest\/dash\//.test(format.url);
 };
-
+/**
+ * Get only the string from an HTML string.
+ *
+ * @param {string} html
+ * @return {string}
+ */
 export const stripHTML = html => {
   return html
     .replace(/\n/g, " ")
@@ -269,7 +374,10 @@ export const stripHTML = html => {
     .replace(/<.*?>/gi, "")
     .trim();
 };
-
+/**
+ * @param {Array.<Function>} funcs
+ * @param {Function(!Error, Array.<Object>)} callback
+ */
 export const parallel = (funcs, callback) => {
   let funcsDone = 0;
   let errGiven = false;
@@ -299,3 +407,44 @@ export const parallel = (funcs, callback) => {
     callback(null, results);
   }
 };
+
+/**
+ * Changes url get request params
+ *
+ * @param {string} uri
+ * @param {string} key
+ * @param {string} value
+ */
+export const changeURLParameter = (uri, key, value) => {
+  var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+  var separator = uri.indexOf("?") !== -1 ? "&" : "?";
+  if (uri.match(re)) {
+    return uri.replace(re, "$1" + key + "=" + value + "$2");
+  } else {
+    return uri + separator + key + "=" + value;
+  }
+};
+
+/**
+ * Removes url get request params
+ *
+ * @param {string} uri
+ * @param {string} key
+ */
+export const removeURLParameter = (uri,key)=> {
+  var rtn = uri.split("?")[0],
+      param,
+      params_arr = [],
+      queryString = (uri.indexOf("?") !== -1) ? uri.split("?")[1] : "";
+  if (queryString !== "") {
+      params_arr = queryString.split("&");
+      for (var i = params_arr.length - 1; i >= 0; i -= 1) {
+          param = params_arr[i].split("=")[0];
+          if (param === key) {
+              params_arr.splice(i, 1);
+          }
+      }
+      rtn = rtn + "?" + params_arr.join("&");
+  }
+  return rtn;
+}
