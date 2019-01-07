@@ -1,6 +1,7 @@
 this.cache = new Map();
-import {changeURLParameter,removeURLParameter} from "./util"
-export const getTokens = (html5playerfile, options, callback) => {
+import util from "./util";
+
+const getTokens = (html5playerfile, options, callback) => {
   let key, cachedTokens;
   const rs = /(?:html5)?player[-_]([a-zA-Z0-9\-_]+)(?:\.js|\/)/.exec(
     html5playerfile
@@ -37,7 +38,7 @@ export const getTokens = (html5playerfile, options, callback) => {
  * @param {string} sig
  * @return {string}
  */
-export const decipher = (tokens, sig) => {
+const decipher = (tokens, sig) => {
   sig = sig.split("");
   for (let i = 0, len = tokens.length; i < len; i++) {
     let token = tokens[i],
@@ -69,7 +70,7 @@ export const decipher = (tokens, sig) => {
  * @param {number} position
  * @return {Array.<Object>}
  */
-export const swapHeadAndPosition = (arr, position) => {
+const swapHeadAndPosition = (arr, position) => {
   const first = arr[0];
   arr[0] = arr[position % arr.length];
   arr[position] = first;
@@ -140,7 +141,7 @@ const swapRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${swapStr}`, "m");
  * @param {string} body
  * @return {Array.<string>}
  */
-export const extractActions = body => {
+const extractActions = body => {
   const objResult = actionsObjRegexp.exec(body);
   const funcResult = actionsFuncRegexp.exec(body);
   if (!objResult || !funcResult) {
@@ -197,7 +198,7 @@ export const extractActions = body => {
  * @param {string} sig
  * @param {boolean} debug
  */
-export const setDownloadURL = (format, sig, debug) => {
+const setDownloadURL = (format, sig, debug) => {
   let decodedUrl;
   if (format.url) {
     decodedUrl = format.url;
@@ -217,20 +218,18 @@ export const setDownloadURL = (format, sig, debug) => {
     return;
   }
 
-
   // Make some adjustments to the final url.
 
-  
   // Deleting the `search` part is necessary otherwise changes to
   // `query` won't reflect when running `url.format()`
-  decodedUrl = removeURLParameter(decodedUrl, "search");
+  decodedUrl = util.removeURLParameter(decodedUrl, "search");
 
   // This is needed for a speedier download.
   // See https://github.com/fent/node-ytdl-core/issues/127
-  decodedUrl = changeURLParameter(decodedUrl, "ratebypass", "yes");
+  decodedUrl = util.changeURLParameter(decodedUrl, "ratebypass", "yes");
 
   if (sig) {
-    decodedUrl = changeURLParameter(decodedUrl, "signature", sig);
+    decodedUrl = util.changeURLParameter(decodedUrl, "signature", sig);
   }
 
   format.url = decodedUrl;
@@ -243,9 +242,19 @@ export const setDownloadURL = (format, sig, debug) => {
  * @param {Array.<string>} tokens
  * @param {boolean} debug
  */
-export const decipherFormats = (formats, tokens, debug) => {
+const decipherFormats = (formats, tokens, debug) => {
   formats.forEach(format => {
     const sig = tokens && format.s ? decipher(tokens, format.s) : null;
     setDownloadURL(format, sig, debug);
   });
 };
+let sig = {
+  getTokens,
+  decipher,
+  swapHeadAndPosition,
+  extractActions,
+  setDownloadURL,
+  decipherFormats
+};
+
+export default sig;

@@ -1,21 +1,8 @@
 const querystring = require("querystring");
 
-import { getTokens, decipherFormats,decipher } from "./sig";
-import {
-  between,
-  stripHTML,
-  parallel,
-  addFormatMeta,
-  sortFormats,
-  parseFormats
-} from "./util";
-import {
-  getAuthor,
-  getPublished,
-  getVideoDescription,
-  getVideoMedia,
-  getRelatedVideos
-} from "./info-extras";
+import sig from "./sig";
+import util from "./util";
+import extras from "./info-extras";
 import FORMATS from "./formats";
 
 const VIDEO_URL = "https://www.youtube.com/watch?v=";
@@ -32,7 +19,7 @@ const KEYS_TO_SPLIT = ["keywords", "fmt_list", "fexp", "watermark"];
  * @param {Object} options
  * @param {Function(Error, Object)} callback
  */
-export const getBasicInfo = (id, options, callback) => {
+const getBasicInfo = (id, options, callback) => {
   // Try getting config from the video page first.
   const params = "hl=" + (options.lang || "en");
   let url =
@@ -49,20 +36,26 @@ export const getBasicInfo = (id, options, callback) => {
     .then(body => body.text())
     .then(body => {
       // Check if there are any errors with this video page.
-      const unavailableMsg = between(body, '<div id="player-unavailable"', ">");
+      const unavailableMsg = util.between(
+        body,
+        '<div id="player-unavailable"',
+        ">"
+      );
       if (
         unavailableMsg &&
-        !/\bhid\b/.test(between(unavailableMsg, 'class="', '"'))
+        !/\bhid\b/.test(util.between(unavailableMsg, 'class="', '"'))
       ) {
         // Ignore error about age restriction.
         if (!body.includes('<div id="watch7-player-age-gate-content"')) {
           return callback(
             Error(
-              between(
-                body,
-                '<h1 id="unavailable-message" class="message">',
-                "</h1>"
-              ).trim()
+              util
+                .between(
+                  body,
+                  '<h1 id="unavailable-message" class="message">',
+                  "</h1>"
+                )
+                .trim()
             )
           );
         }
@@ -71,25 +64,25 @@ export const getBasicInfo = (id, options, callback) => {
       // Parse out additional metadata from this page.
       const additional = {
         // Get the author/uploader.
-        author: getAuthor(body),
+        author: extras.getAuthor(body),
 
         // Get the day the vid was published.
-        published: getPublished(body),
+        published: extras.getPublished(body),
 
         // Get description.
-        description: getVideoDescription(body),
+        description: extras.getVideoDescription(body),
 
         // Get media info.
-        media: getVideoMedia(body),
+        media: extras.getVideoMedia(body),
 
         // Get related videos.
-        related_videos: getRelatedVideos(body),
+        related_videos: extras.getRelatedVideos(body),
 
         // Give the standard link to the video.
         video_url: VIDEO_URL + id
       };
 
-      const jsonStr = between(body, "ytplayer.config = ", "</script>");
+      const jsonStr = util.between(body, "ytplayer.config = ", "</script>");
       let config;
       if (jsonStr) {
         config = jsonStr.slice(0, jsonStr.lastIndexOf(";ytplayer.load"));
@@ -102,7 +95,7 @@ export const getBasicInfo = (id, options, callback) => {
         fetch(url)
           .then(body => body.text())
           .then(body => {
-            config = between(
+            config = util.between(
               body,
               "t.setConfig({'PLAYER_CONFIG': ",
               /\}(,'|\}\);)/
@@ -123,14 +116,7 @@ export const getBasicInfo = (id, options, callback) => {
  * @param {boolean} fromEmbed
  * @param {Function(Error, Object)} callback
  */
-export const gotConfig = (
-  id,
-  options,
-  additional,
-  config,
-  fromEmbed,
-  callback
-) => {
+const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
   if (!config) {
     return callback(Error("Could not find player config"));
   }
@@ -156,7 +142,6 @@ export const gotConfig = (
   )
     .then(body => body.text())
     .then(body => {
-
       let info = querystring.parse(body);
 
       if (info.status === "fail") {
@@ -170,7 +155,7 @@ export const gotConfig = (
           info.no_embed_allowed = true;
         } else {
           return callback(
-            Error(`Code ${info.errorcode}: ${stripHTML(info.reason)}`)
+            Error(`Code ${info.errorcode}: ${util.stripHTML(info.reason)}`)
           );
         }
       }
@@ -201,7 +186,7 @@ export const gotConfig = (
         ? info.fmt_list.map(format => format.split("/"))
         : [];
 
-      info.formats = parseFormats(info);
+      info.formats = util.parseFormats(info);
 
       // Add additional properties to info.
       Object.assign(info, additional);
@@ -223,19 +208,18 @@ export const gotConfig = (
  * @param {Object} options
  * @param {Function(Error, Object)} callback
  */
-export const getFullInfo = (id, options, callback) => {
+const getFullInfo = (id, options, callback) => {
   return getBasicInfo(id, options, (err, info) => {
     if (err) return callback(err);
 
     if (info.formats.length || info.dashmpd || info.dashmpd2 || info.hlsvp) {
       const html5playerfile = "https://" + INFO_HOST + info.html5player;
 
-      getTokens(html5playerfile, options, (err, tokens) => {
+      sig.getTokens(html5playerfile, options, (err, tokens) => {
         if (err) return callback(err);
 
-    
-        decipherFormats(info.formats, tokens, options.debug);
-    
+        sig.decipherFormats(info.formats, tokens, options.debug);
+
         let funcs = [];
 
         if (info.dashmpd) {
@@ -253,7 +237,7 @@ export const getFullInfo = (id, options, callback) => {
           funcs.push(getM3U8.bind(null, info.hlsvp, options));
         }
 
-        parallel(funcs, (err, results) => {
+        util.parallel(funcs, (err, results) => {
           if (err) return callback(err);
           if (results[0]) {
             mergeFormats(info, results[0]);
@@ -278,8 +262,8 @@ export const getFullInfo = (id, options, callback) => {
             });
           }
 
-          info.formats.forEach(addFormatMeta);
-          info.formats.sort(sortFormats);
+          info.formats.forEach(util.addFormatMeta);
+          info.formats.sort(util.sortFormats);
           info.full = true;
           callback(null, info);
         });
@@ -296,10 +280,9 @@ export const getFullInfo = (id, options, callback) => {
  */
 const decipherURL = (url, tokens) => {
   return url.replace(/\/s\/([a-fA-F0-9.]+)/, (_, s) => {
-    return "/signature/" + decipher(tokens, s);
+    return "/signature/" + sig.decipher(tokens, s);
   });
 };
-
 
 /**
  * Merges formats from DASH or M3U8 with formats from video info page.
@@ -343,3 +326,6 @@ const getM3U8 = (url, options, callback) => {
     callback(null, formats);
   });
 };
+
+let info = { getBasicInfo, gotConfig, getFullInfo };
+export default info;

@@ -1,7 +1,7 @@
 /**
  * http://en.wikipedia.org/wiki/YouTube#Quality_and_formats
  */
-export default FORMATS = {
+FORMATS = {
   "5": {
     container: "flv",
     resolution: "240p",
@@ -733,3 +733,5 @@ export default FORMATS = {
     audioBitrate: 24
   }
 };
+
+export default FORMATS;

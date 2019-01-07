@@ -9,7 +9,7 @@ import FORMATS from "./formats";
  * @return {number}
  */
 const timeRegexp = /(?:(\d+)h)?(?:(\d+)m(?!s))?(?:(\d+)s)?(?:(\d+)(?:ms)?)?/;
-export const parseTime = time => {
+const parseTime = time => {
   const result = timeRegexp.exec(time.toString());
   const hours = result[1] || 0;
   const mins = result[2] || 0;
@@ -42,7 +42,7 @@ const videoEncodingRanks = {
  * @param {Object} a
  * @param {Object} b
  */
-export const sortFormats = (a, b) => {
+const sortFormats = (a, b) => {
   const ares = a.resolution ? parseInt(a.resolution.slice(0, -1), 10) : 0;
   const bres = b.resolution ? parseInt(b.resolution.slice(0, -1), 10) : 0;
   const afeats = ~~!!ares * 2 + ~~!!a.audioBitrate;
@@ -95,82 +95,87 @@ export const sortFormats = (a, b) => {
  * @param {Object} options
  * @return {Object|Error}
  */
-export const chooseFormat = (formats, options) => {
-  if (typeof options.format === 'object') {
+const chooseFormat = (formats, options) => {
+  if (typeof options.format === "object") {
     return options.format;
   }
 
   if (options.filter) {
     formats = filterFormats(formats, options.filter);
     if (formats.length === 0) {
-      return Error('No formats found with custom filter');
+      return Error("No formats found with custom filter");
     }
   }
 
   let format;
-  const quality = options.quality || 'highest';
-  const getBitrate = (f) => {
-    let s = f.bitrate.split('-');
+  const quality = options.quality || "highest";
+  const getBitrate = f => {
+    let s = f.bitrate.split("-");
     return parseFloat(s[s.length - 1], 10);
   };
   switch (quality) {
-    case 'highest':
+    case "highest":
       format = formats[0];
       break;
 
-    case 'lowest':
+    case "lowest":
       format = formats[formats.length - 1];
       break;
 
-    case 'highestaudio':
-      formats = filterFormats(formats, 'audio');
+    case "highestaudio":
+      formats = filterFormats(formats, "audio");
       format = null;
       for (let f of formats) {
-        if (!format
-          || f.audioBitrate > format.audioBitrate
-          || (f.audioBitrate === format.audioBitrate && format.encoding && !f.encoding))
+        if (
+          !format ||
+          f.audioBitrate > format.audioBitrate ||
+          (f.audioBitrate === format.audioBitrate &&
+            format.encoding &&
+            !f.encoding)
+        )
           format = f;
       }
       break;
 
-    case 'highestvideo':
-      formats = filterFormats(formats, 'video');
+    case "highestvideo":
+      formats = filterFormats(formats, "video");
       format = null;
       for (let f of formats) {
-        if (!format
-          || getBitrate(f) > getBitrate(format)
-          || (getBitrate(f) === getBitrate(format) && format.audioEncoding && !f.audioEncoding))
+        if (
+          !format ||
+          getBitrate(f) > getBitrate(format) ||
+          (getBitrate(f) === getBitrate(format) &&
+            format.audioEncoding &&
+            !f.audioEncoding)
+        )
           format = f;
       }
       break;
 
     default: {
-      let getFormat = (itag) => {
-        return formats.find((format) => format.itag === '' + itag);
+      let getFormat = itag => {
+        return formats.find(format => format.itag === "" + itag);
       };
       if (Array.isArray(quality)) {
-        quality.find((q) => format = getFormat(q));
+        quality.find(q => (format = getFormat(q)));
       } else {
         format = getFormat(quality);
       }
     }
-
   }
 
   if (!format) {
-    return Error('No such format found: ' + quality);
+    return Error("No such format found: " + quality);
   }
   return format;
 };
-
-
 
 /**
  * @param {Array.<Object>} formats
  * @param {Function} filter
  * @return {Array.<Object>}
  */
-export const filterFormats = (formats, filter) => {
+const filterFormats = (formats, filter) => {
   let fn;
   switch (filter) {
     case "audioandvideo":
@@ -203,7 +208,6 @@ export const filterFormats = (formats, filter) => {
   return formats.filter(fn);
 };
 
-
 /**
  * String#indexOf() that supports regex too.
  *
@@ -211,12 +215,11 @@ export const filterFormats = (formats, filter) => {
  * @param {string|RegExp} needle
  * @return {number}
  */
-export const indexOf = (haystack, needle) => {
+const indexOf = (haystack, needle) => {
   return needle instanceof RegExp
     ? haystack.search(needle)
     : haystack.indexOf(needle);
 };
-
 
 /**
  * Extract string inbetween another.
@@ -226,7 +229,7 @@ export const indexOf = (haystack, needle) => {
  * @param {string} right
  * @return {string}
  */
-export const between = (haystack, left, right) => {
+const between = (haystack, left, right) => {
   let pos = indexOf(haystack, left);
   if (pos === -1) {
     return "";
@@ -267,7 +270,7 @@ const validPathDomains = new Set([
   "youtube.com",
   "www.youtube.com"
 ]);
-export const getURLVideoID = link => {
+const getURLVideoID = link => {
   const parsed = url.parse(link, true);
   let id = parsed.query.v;
   if (validPathDomains.has(parsed.hostname) && !id) {
@@ -296,7 +299,7 @@ export const getURLVideoID = link => {
  * @param {string} str
  * @return {string|Error}
  */
-export const getVideoID = str => {
+const getVideoID = str => {
   if (validateID(str)) {
     return str;
   } else {
@@ -311,7 +314,7 @@ export const getVideoID = str => {
  * @return {boolean}
  */
 const idRegex = /^[a-zA-Z0-9-_]{11}$/;
-export const validateID = id => {
+const validateID = id => {
   return idRegex.test(id);
 };
 
@@ -321,17 +324,15 @@ export const validateID = id => {
  * @param {string} string
  * @return {boolean}
  */
-export const validateURL = string => {
+const validateURL = string => {
   return !(getURLVideoID(string) instanceof Error);
 };
-
-
 
 /**
  * @param {Object} info
  * @return {Array.<Object>}
  */
-export const parseFormats = info => {
+const parseFormats = info => {
   let formats = [];
   if (info.url_encoded_fmt_stream_map) {
     formats = formats.concat(info.url_encoded_fmt_stream_map.split(","));
@@ -350,7 +351,7 @@ export const parseFormats = info => {
 /**
  * @param {Object} format
  */
-export const addFormatMeta = format => {
+const addFormatMeta = format => {
   const meta = FORMATS[format.itag];
   for (let key in meta) {
     format[key] = meta[key];
@@ -366,7 +367,7 @@ export const addFormatMeta = format => {
  * @param {string} html
  * @return {string}
  */
-export const stripHTML = html => {
+const stripHTML = html => {
   return html
     .replace(/\n/g, " ")
     .replace(/\s*<\s*br\s*\/?\s*>\s*/gi, "\n")
@@ -378,7 +379,7 @@ export const stripHTML = html => {
  * @param {Array.<Function>} funcs
  * @param {Function(!Error, Array.<Object>)} callback
  */
-export const parallel = (funcs, callback) => {
+const parallel = (funcs, callback) => {
   let funcsDone = 0;
   let errGiven = false;
   let results = [];
@@ -415,7 +416,7 @@ export const parallel = (funcs, callback) => {
  * @param {string} key
  * @param {string} value
  */
-export const changeURLParameter = (uri, key, value) => {
+const changeURLParameter = (uri, key, value) => {
   var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
   var separator = uri.indexOf("?") !== -1 ? "&" : "?";
   if (uri.match(re)) {
@@ -431,20 +432,41 @@ export const changeURLParameter = (uri, key, value) => {
  * @param {string} uri
  * @param {string} key
  */
-export const removeURLParameter = (uri,key)=> {
+const removeURLParameter = (uri, key) => {
   var rtn = uri.split("?")[0],
-      param,
-      params_arr = [],
-      queryString = (uri.indexOf("?") !== -1) ? uri.split("?")[1] : "";
+    param,
+    params_arr = [],
+    queryString = uri.indexOf("?") !== -1 ? uri.split("?")[1] : "";
   if (queryString !== "") {
-      params_arr = queryString.split("&");
-      for (var i = params_arr.length - 1; i >= 0; i -= 1) {
-          param = params_arr[i].split("=")[0];
-          if (param === key) {
-              params_arr.splice(i, 1);
-          }
+    params_arr = queryString.split("&");
+    for (var i = params_arr.length - 1; i >= 0; i -= 1) {
+      param = params_arr[i].split("=")[0];
+      if (param === key) {
+        params_arr.splice(i, 1);
       }
-      rtn = rtn + "?" + params_arr.join("&");
+    }
+    rtn = rtn + "?" + params_arr.join("&");
   }
   return rtn;
-}
+};
+
+let util = {
+  parseTime,
+  sortFormats,
+  chooseFormat,
+  filterFormats,
+  indexOf,
+  between,
+  getURLVideoID,
+  getVideoID,
+  validateID,
+  validateURL,
+  parseFormats,
+  addFormatMeta,
+  stripHTML,
+  parallel,
+  changeURLParameter,
+  removeURLParameter
+};
+
+export default util;

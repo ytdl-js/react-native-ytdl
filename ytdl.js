@@ -1,21 +1,15 @@
-import { getFullInfo, getBasicInfo } from "./info";
-import {
-  filterFormats,
-  validateID,
-  validateURL,
-  getURLVideoID,
-  getVideoID
-} from "./util";
+import util from "./util";
+import info from "./info";
 
 let ytdl = {
-  filterFormats,
-  getBasicInfo,
-  validateID,
-  validateURL,
-  getURLVideoID,
-  getVideoID,
+  filterFormats: util.filterFormats,
+  validateID: util.validateID,
+  validateURL: util.validateURL,
+  getURLVideoID: util.getURLVideoID,
+  getVideoID: util.getVideoID,
 
-  getInfo: getFullInfo
+  getBasicInfo: info.getBasicInfo,
+  getInfo: info.getFullInfo
 };
 
 export default ytdl;
