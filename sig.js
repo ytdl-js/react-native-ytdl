@@ -27,7 +27,9 @@ const getTokens = (html5playerfile, options, callback) => {
         this.cache.set(key, tokens);
         callback(null, tokens);
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        callback(err);
+      });
   }
 };
 

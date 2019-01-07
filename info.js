@@ -102,10 +102,14 @@ const getBasicInfo = (id, options, callback) => {
             );
             gotConfig(id, options, additional, config, true, callback);
           })
-          .catch(err => callback(err));
+          .catch(err => {
+            callback(err);
+          });
       }
     })
-    .catch(error => callback(error));
+    .catch(error => {
+      callback(error);
+    });
 };
 
 /**
@@ -198,7 +202,9 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
 
       callback(null, info);
     })
-    .catch(err => callback(err));
+    .catch(err => {
+      callback(err);
+    });
 };
 
 /**
