@@ -307,7 +307,9 @@ const mergeFormats = (info, formatsMap) => {
     info.formats.push(formatsMap[itag]);
   }
 };
-//TODO: Find a way to implement getDashManifest functions, dont forget to add comments
+
+//TODO: Find a way to implement getDashManifest function, dont forget to add comments afterwards
+const getDashManifest = () => console.error("react-native-ytdl: You tried to call an unimplemented function [getDashManifest] ")
 
 /**
  * Gets additional formats.
