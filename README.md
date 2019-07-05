@@ -1,14 +1,21 @@
+# This is a fork of [AbelTesfaye/react-native-ytdl](https://github.com/AbelTesfaye/react-native-ytdl)
+
 # react-native-ytdl
 
 YouTube video and audio stream extractor for react native.
 
 This module is a port of [ytdl-core](https://github.com/fent/node-ytdl-core). All the functionality was ported successfully except for a couple of methods which react native does not support(such as node's streaming api).
 
+# Installation
+
+```
+npm install jibbex-react-native-ytdl
+```
 
 # Usage
 
 ```js
-import ytdl from "react-native-ytdl"
+import ytdl from "jibbex-react-native-ytdl"
 
 videoID = "04GiqLjRO3A"
 ytdl.getInfo(videoID, {}, (err, info) => {
