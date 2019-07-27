@@ -37,10 +37,6 @@ Use this if you only want to get metainfo from a video.
 
 Gets metainfo from a video. Includes additional formats, and ready to download deciphered URL. This is what the `ytdl()` function uses internally.
 
-### ytdl.downloadFromInfo(info, options)
-
-Once you have received metadata from a video with the `ytdl.getInfo` function, you may pass that information along with other options to this function.
-
 ### ytdl.chooseFormat(formats, options)
 
 Can be used if you'd like to choose a format yourself with the [options above](#ytdlurl-options).
