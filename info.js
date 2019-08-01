@@ -193,7 +193,16 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
       info.formats = util.parseFormats(info);
 
       // Add additional properties to info.
-      Object.assign(info, additional);
+      Object.assign(info, additional, {
+        // Give the standard link to the video.
+        video_url: VIDEO_URL + id,
+
+        // Copy over a few props from `player_response.videoDetails`
+        // for bakcwards compatibility.
+        title: info.player_response.videoDetails.title,
+        length_seconds: info.player_response.videoDetails.lengthSeconds,
+      });
+      
       info.age_restricted = fromEmbed;
       info.html5player = config.assets.js;
       if (config.args.dashmpd && info.dashmpd !== config.args.dashmpd) {
