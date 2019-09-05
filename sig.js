@@ -1,16 +1,22 @@
 this.cache = new Map();
-import util from "./util";
+import util from './util';
 
+/**
+ * Extract signature deciphering tokens from html5player file.
+ *
+ * @param {string} html5playerfile
+ * @param {Object} options
+ * @param {Function(!Error, Array.<string>)} callback
+ */
 const getTokens = (html5playerfile, options, callback) => {
   let key, cachedTokens;
-  const rs = /(?:html5)?player[-_]([a-zA-Z0-9\-_]+)(?:\.js|\/)/.exec(
-    html5playerfile
-  );
+  const rs = /(?:html5)?player[-_]([a-zA-Z0-9\-_]+)(?:\.js|\/)/
+  .exec(html5playerfile);
   if (rs) {
     key = rs[1];
     cachedTokens = this.cache.get(key);
   } else {
-    console.warn("Could not extract html5player key:", html5playerfile);
+    console.warn('Could not extract html5player key:', html5playerfile);
   }
   if (cachedTokens) {
     callback(null, cachedTokens);
@@ -18,9 +24,10 @@ const getTokens = (html5playerfile, options, callback) => {
     fetch(html5playerfile)
       .then(body => body.text())
       .then(body => {
+
         const tokens = extractActions(body);
         if (key && (!tokens || !tokens.length)) {
-          callback(Error("Could not extract signature deciphering actions"));
+          callback(Error('Could not extract signature deciphering actions'));
           return;
         }
 
@@ -33,6 +40,7 @@ const getTokens = (html5playerfile, options, callback) => {
   }
 };
 
+
 /**
  * Decipher a signature based on action tokens.
  *
@@ -41,30 +49,31 @@ const getTokens = (html5playerfile, options, callback) => {
  * @return {string}
  */
 const decipher = (tokens, sig) => {
-  sig = sig.split("");
+  sig = sig.split('');
   for (let i = 0, len = tokens.length; i < len; i++) {
-    let token = tokens[i],
-      pos;
+    let token = tokens[i], pos;
     switch (token[0]) {
-      case "r":
+      case 'r':
         sig = sig.reverse();
         break;
-      case "w":
+      case 'w':
         pos = ~~token.slice(1);
         sig = swapHeadAndPosition(sig, pos);
         break;
-      case "s":
+      case 's':
         pos = ~~token.slice(1);
         sig = sig.slice(pos);
         break;
-      case "p":
+      case 'p':
         pos = ~~token.slice(1);
         sig.splice(0, pos);
         break;
     }
   }
-  return sig.join("");
+  return sig.join('');
 };
+
+
 /**
  * Swaps the first element of an array with one of given position.
  *
@@ -79,49 +88,47 @@ const swapHeadAndPosition = (arr, position) => {
   return arr;
 };
 
-const jsVarStr = "[a-zA-Z_\\$][a-zA-Z_0-9]*";
+
+const jsVarStr = '[a-zA-Z_\\$][a-zA-Z_0-9]*';
 const jsSingleQuoteStr = `'[^'\\\\]*(:?\\\\[\\s\\S][^'\\\\]*)*'`;
 const jsDoubleQuoteStr = `"[^"\\\\]*(:?\\\\[\\s\\S][^"\\\\]*)*"`;
 const jsQuoteStr = `(?:${jsSingleQuoteStr}|${jsDoubleQuoteStr})`;
 const jsKeyStr = `(?:${jsVarStr}|${jsQuoteStr})`;
 const jsPropStr = `(?:\\.${jsVarStr}|\\[${jsQuoteStr}\\])`;
 const jsEmptyStr = `(?:''|"")`;
-const reverseStr =
-  ":function\\(a\\)\\{" + "(?:return )?a\\.reverse\\(\\)" + "\\}";
-const sliceStr = ":function\\(a,b\\)\\{" + "return a\\.slice\\(b\\)" + "\\}";
-const spliceStr = ":function\\(a,b\\)\\{" + "a\\.splice\\(0,b\\)" + "\\}";
-const swapStr =
-  ":function\\(a,b\\)\\{" +
-  "var c=a\\[0\\];a\\[0\\]=a\\[b(?:%a\\.length)?\\];a\\[b(?:%a\\.length)?\\]=c(?:;return a)?" +
-  "\\}";
+const reverseStr = ':function\\(a\\)\\{' +
+  '(?:return )?a\\.reverse\\(\\)' +
+   '\\}';
+const sliceStr = ':function\\(a,b\\)\\{' +
+ 'return a\\.slice\\(b\\)' +
+  '\\}';
+const spliceStr = ':function\\(a,b\\)\\{' +
+ 'a\\.splice\\(0,b\\)' +
+  '\\}';
+const swapStr = ':function\\(a,b\\)\\{' +
+  'var c=a\\[0\\];a\\[0\\]=a\\[b(?:%a\\.length)?\\];a\\[b(?:%a\\.length)?\\]=c(?:;return a)?' +
+  '\\}';
 const actionsObjRegexp = new RegExp(
   `var (${jsVarStr})=\\{((?:(?:` +
-    jsKeyStr +
-    reverseStr +
-    "|" +
-    jsKeyStr +
-    sliceStr +
-    "|" +
-    jsKeyStr +
-    spliceStr +
-    "|" +
-    jsKeyStr +
-    swapStr +
-    "),?\\r?\\n?)+)\\};"
+    jsKeyStr + reverseStr + '|' +
+    jsKeyStr + sliceStr   + '|' +
+    jsKeyStr + spliceStr  + '|' +
+    jsKeyStr + swapStr +
+    '),?\\r?\\n?)+)\\};'
 );
-const actionsFuncRegexp = new RegExp(
-  `function(?: ${jsVarStr})?\\(a\\)\\{` +
+const actionsFuncRegexp = new RegExp(`function(?: ${jsVarStr})?\\(a\\)\\{` +
     `a=a\\.split\\(${jsEmptyStr}\\);\\s*` +
     `((?:(?:a=)?${jsVarStr}` +
     jsPropStr +
-    "\\(a,\\d+\\);)+)" +
+    '\\(a,\\d+\\);)+)' +
     `return a\\.join\\(${jsEmptyStr}\\)` +
-    "\\}"
+    '\\}'
 );
-const reverseRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${reverseStr}`, "m");
-const sliceRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${sliceStr}`, "m");
-const spliceRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${spliceStr}`, "m");
-const swapRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${swapStr}`, "m");
+const reverseRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${reverseStr}`, 'm');
+const sliceRegexp   = new RegExp(`(?:^|,)(${jsKeyStr})${sliceStr}`, 'm');
+const spliceRegexp  = new RegExp(`(?:^|,)(${jsKeyStr})${spliceStr}`, 'm');
+const swapRegexp    = new RegExp(`(?:^|,)(${jsKeyStr})${swapStr}`, 'm');
+
 
 /**
  * Extracts the actions that should be taken to decipher a signature.
@@ -143,57 +150,58 @@ const swapRegexp = new RegExp(`(?:^|,)(${jsKeyStr})${swapStr}`, "m");
  * @param {string} body
  * @return {Array.<string>}
  */
-const extractActions = body => {
+const extractActions = (body) => {
   const objResult = actionsObjRegexp.exec(body);
   const funcResult = actionsFuncRegexp.exec(body);
-  if (!objResult || !funcResult) {
-    return null;
-  }
+  if (!objResult || !funcResult) { return null; }
 
-  const obj = objResult[1].replace(/\$/g, "\\$");
-  const objBody = objResult[2].replace(/\$/g, "\\$");
-  const funcBody = funcResult[1].replace(/\$/g, "\\$");
+  const obj      = objResult[1].replace(/\$/g, '\\$');
+  const objBody  = objResult[2].replace(/\$/g, '\\$');
+  const funcBody = funcResult[1].replace(/\$/g, '\\$');
 
   let result = reverseRegexp.exec(objBody);
-  const reverseKey =
-    result && result[1].replace(/\$/g, "\\$").replace(/\$|^'|^"|'$|"$/g, "");
-  result = sliceRegexp.exec(objBody);
-  const sliceKey =
-    result && result[1].replace(/\$/g, "\\$").replace(/\$|^'|^"|'$|"$/g, "");
-  result = spliceRegexp.exec(objBody);
-  const spliceKey =
-    result && result[1].replace(/\$/g, "\\$").replace(/\$|^'|^"|'$|"$/g, "");
-  result = swapRegexp.exec(objBody);
-  const swapKey =
-    result && result[1].replace(/\$/g, "\\$").replace(/\$|^'|^"|'$|"$/g, "");
+  const reverseKey = result && result[1]
+  .replace(/\$/g, '\\$')
+  .replace(/\$|^'|^"|'$|"$/g, '');
+result = sliceRegexp.exec(objBody);
+const sliceKey = result && result[1]
+  .replace(/\$/g, '\\$')
+  .replace(/\$|^'|^"|'$|"$/g, '');
+result = spliceRegexp.exec(objBody);
+const spliceKey = result && result[1]
+  .replace(/\$/g, '\\$')
+  .replace(/\$|^'|^"|'$|"$/g, '');
+result = swapRegexp.exec(objBody);
+const swapKey = result && result[1]
+  .replace(/\$/g, '\\$')
+  .replace(/\$|^'|^"|'$|"$/g, '');
 
-  const keys = `(${[reverseKey, sliceKey, spliceKey, swapKey].join("|")})`;
-  const myreg =
-    "(?:a=)?" +
-    obj +
-    `(?:\\.${keys}|\\['${keys}'\\]|\\["${keys}"\\])` +
-    "\\(a,(\\d+)\\)";
-  const tokenizeRegexp = new RegExp(myreg, "g");
+const keys = `(${[reverseKey, sliceKey, spliceKey, swapKey].join('|')})`;
+const myreg = '(?:a=)?' + obj +
+  `(?:\\.${keys}|\\['${keys}'\\]|\\["${keys}"\\])` +
+  '\\(a,(\\d+)\\)';
+  const tokenizeRegexp = new RegExp(myreg, 'g');
   const tokens = [];
   while ((result = tokenizeRegexp.exec(funcBody)) !== null) {
     let key = result[1] || result[2] || result[3];
     switch (key) {
       case swapKey:
-        tokens.push("w" + result[4]);
+        tokens.push('w' + result[4]);
         break;
       case reverseKey:
-        tokens.push("r");
+        tokens.push('r');
         break;
       case sliceKey:
-        tokens.push("s" + result[4]);
+        tokens.push('s' + result[4]);
         break;
       case spliceKey:
-        tokens.push("p" + result[4]);
+        tokens.push('p' + result[4]);
         break;
     }
   }
   return tokens;
 };
+
 
 /**
  * @param {Object} format
@@ -206,7 +214,7 @@ const setDownloadURL = (format, sig, debug) => {
     decodedUrl = format.url;
   } else {
     if (debug) {
-      console.warn("Download url not found for itag " + format.itag);
+      console.warn('Download url not found for itag ' + format.itag);
     }
     return;
   }
@@ -215,7 +223,7 @@ const setDownloadURL = (format, sig, debug) => {
     decodedUrl = decodeURIComponent(decodedUrl);
   } catch (err) {
     if (debug) {
-      console.warn("Could not decode url: " + err.message);
+      console.warn('Could not decode url: ' + err.message);
     }
     return;
   }
@@ -224,18 +232,26 @@ const setDownloadURL = (format, sig, debug) => {
 
   // Deleting the `search` part is necessary otherwise changes to
   // `query` won't reflect when running `url.format()`
-  decodedUrl = util.removeURLParameter(decodedUrl, "search");
+  decodedUrl = util.removeURLParameter(decodedUrl, 'search');
 
   // This is needed for a speedier download.
   // See https://github.com/fent/node-ytdl-core/issues/127
-  decodedUrl = util.changeURLParameter(decodedUrl, "ratebypass", "yes");
+  decodedUrl = util.changeURLParameter(decodedUrl, 'ratebypass', 'yes');
 
   if (sig) {
-    decodedUrl = util.changeURLParameter(decodedUrl, "signature", sig);
+    // When YouTube provides a `sp` parameter the signature `sig` must go
+    // into the parameter it specifies.
+    // See https://github.com/fent/node-ytdl-core/issues/417
+    if (format.sp) {
+      decodedUrl = util.changeURLParameter(decodedUrl, format.sp, sig);
+    } else {
+      decodedUrl = util.changeURLParameter(decodedUrl, 'signature', sig);
+    }
   }
 
   format.url = decodedUrl;
 };
+
 
 /**
  * Applies `sig.decipher()` to all format URL's.
@@ -245,12 +261,12 @@ const setDownloadURL = (format, sig, debug) => {
  * @param {boolean} debug
  */
 const decipherFormats = (formats, tokens, debug) => {
-  formats.forEach(format => {
+  formats.forEach((format) => {
     const sig = tokens && format.s ? decipher(tokens, format.s) : null;
     setDownloadURL(format, sig, debug);
   });
 };
-let sig = {
+const sig = {
   getTokens,
   decipher,
   swapHeadAndPosition,
