@@ -3,6 +3,11 @@
   "version": "1.0.2",
   "description": "YouTube video and audio stream extractor for react native.",
   "main": "index.js",
+  "dependencies": {
+    "html-entities": "^1.2.1",
+    "query-string": "^6.2.0",
+    "url": "~0.10.1"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,6 +15,7 @@
     "type": "git",
     "url": "git+https://github.com/AbelTesfaye/react-native-ytdl.git"
   },
+
   "keywords": [
     "react",
     "native",
