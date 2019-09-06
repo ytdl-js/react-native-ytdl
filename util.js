@@ -351,7 +351,7 @@ const addFormatMeta = format => {
  * @param {string} html
  * @return {string}
  */
-const strihtmlpHTML = () => {
+const stripHTML = (html) => {
   return html
     .replace(/\n/g, ' ')
     .replace(/\s*<\s*br\s*\/?\s*>\s*/gi, '\n')
@@ -445,6 +445,7 @@ let util = {
   validateID,
   validateURL,
   addFormatMeta,
+  stripHTML,
   parallel,
   changeURLParameter,
   removeURLParameter
