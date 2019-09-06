@@ -24,7 +24,8 @@ const KEYS_TO_SPLIT = [
  * @param {Object} options
  * @param {Function(Error, Object)} callback
  */
-const getBasicInfo = (id, options, callback) => {
+const getBasicInfo = (_ID_OR_URL, options, callback) => {
+  const id = util.getVideoID(_ID_OR_URL)
   // Try getting config from the video page first.
   const params = 'hl=' + (options.lang || 'en');
   let url = VIDEO_URL + id + '&' + params +
@@ -36,8 +37,8 @@ const getBasicInfo = (id, options, callback) => {
   reqOptions.headers = Object.assign({}, reqOptions.headers, {
     'User-Agent': ''
   });
-
-  fetch(url)
+  
+  fetch(url,reqOptions)
     .then(body => body.text())
     .then(body => {
       // Check if there are any errors with this video page.
@@ -74,7 +75,7 @@ const getBasicInfo = (id, options, callback) => {
       if (jsonStr) {
         config = jsonStr.slice(0, jsonStr.lastIndexOf(';ytplayer.load'));
         gotConfig(id, options, additional, config, false, callback);
-     
+
       } else {
         // If the video page doesn't work, maybe because it has mature content.
         // and requires an account logged in to view, try the embed page.
