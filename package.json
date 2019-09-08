@@ -1,6 +1,6 @@
 {
   "name": "react-native-ytdl",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "YouTube video and audio stream extractor for react native.",
   "main": "index.js",
   "dependencies": {
