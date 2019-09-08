@@ -189,12 +189,19 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
       info.formats = parseFormats(info);
 
       // Add additional properties to info.
-      Object.assign(info, additional);
+      Object.assign(info, additional, {
+        video_id: id,
+
+        // Give the standard link to the video.
+        video_url: VIDEO_URL + id,
+
+        // Copy over a few props from `player_response.videoDetails`
+        // for backwards compatibility.
+        title: info.player_response.videoDetails.title,
+        length_seconds: info.player_response.videoDetails.lengthSeconds,
+      });
       info.age_restricted = fromEmbed;
       info.html5player = config.assets.js;
-      if (config.args.dashmpd && info.dashmpd !== config.args.dashmpd) {
-        info.dashmpd2 = config.args.dashmpd;
-      }
 
       callback(null, info);
     })
@@ -205,7 +212,9 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
 
 
 /**
- * Gets info from a video additional formats and deciphered URLs.
+ * Gets info fro      if (config.args.dashmpd && info.dashmpd !== config.args.dashmpd) {
+        info.dashmpd2 = config.args.dashmpd;
+      }m a video additional formats and deciphered URLs.
  *
  * @param {string} id
  * @param {Object} options
