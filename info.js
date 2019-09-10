@@ -1,4 +1,5 @@
 const querystring = require('querystring');
+const parser = require('react-xml-parser');
 
 import sig from './sig';
 import util from './util';
@@ -289,9 +290,39 @@ const mergeFormats = (info, formatsMap) => {
 };
 
 
+/**
+ * Gets additional DASH formats.
+ *
+ * @param {string} url
+ * @param {Object} options
+ * @param {Function(!Error, Array.<Object>)} callback
+ */
+const getDashManifest = (url, options, callback) => {
+  let formats = {};
 
-//TODO: Find a way to implement getDashManifest function, dont forget to add comments afterwards
-const getDashManifest = () => console.error('react-native-ytdl: You tried to call an unimplemented function [getDashManifest] ')
+  const reqOptions = Object.assign({}, options.requestOptions);
+  reqOptions.headers = Object.assign({}, reqOptions.headers, {
+    "Content-Type": "text/plain;charset=UTF-8"
+  });
+  
+  fetch(url, reqOptions)
+    .then(body => body.text())
+    .then((chunk) => {
+      const xml = new parser().parseFromString(chunk);
+      const allNodes = xml.getElementsByTagName('REPRESENTATION')
+      allNodes.forEach(
+        node => {
+            const itag = node.attributes.id;
+            formats[itag] = { itag, url };
+        });
+      
+      callback(null, formats);
+    })
+    .catch(err => {
+      callback(err);
+    })
+};
+
 
 /**
  * Gets additional formats.
