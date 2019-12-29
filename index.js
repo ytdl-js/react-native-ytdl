@@ -1,16 +1,19 @@
+import getInfo from "./info";
 import util from "./util";
-import info from "./info";
+import sig from "./sig";
 
-let ytdl = {
-  filterFormats: util.filterFormats,
-  validateID: util.validateID,
-  validateURL: util.validateURL,
-  getURLVideoID: util.getURLVideoID,
-  getVideoID: util.getVideoID,
-  chooseFormat: util.chooseFormat,
 
-  getBasicInfo: info.getBasicInfo,
-  getInfo: info.getFullInfo
+exports.getBasicInfo = getInfo.getBasicInfo;
+exports.getInfo = getInfo.getFullInfo;
+exports.chooseFormat = util.chooseFormat;
+exports.filterFormats = util.filterFormats;
+exports.validateID = util.validateID;
+exports.validateURL = util.validateURL;
+exports.getURLVideoID = util.getURLVideoID;
+exports.getVideoID = util.getVideoID;
+exports.cache = {
+  sig: sig.cache,
+  info: getInfo.cache,
 };
 
-export default ytdl;
+export default exports;
