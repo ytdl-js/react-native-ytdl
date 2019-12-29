@@ -99,10 +99,10 @@ const getBasicInfo = (_ID_OR_URL, options, callback) => {
 const parseFormats = (info) => {
   let formats = [];
   if (info.player_response.streamingData) {
-    formats = formats.concat(info.url_encoded_fmt_stream_map.split(','));	    if (info.player_response.streamingData.formats) {
-  }	      formats = formats.concat(info.player_response.streamingData.formats);
-  if (info.adaptive_fmts) {	    }
-    formats = formats.concat(info.adaptive_fmts.split(','));	    if (info.player_response.streamingData.adaptiveFormats) {
+    if (info.player_response.streamingData.formats) {
+      formats = formats.concat(info.player_response.streamingData.formats);
+    }
+    if (info.player_response.streamingData.adaptiveFormats) {
       formats = formats.concat(info.player_response.streamingData.adaptiveFormats);
     }
   }

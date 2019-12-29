@@ -327,7 +327,7 @@ const addFormatMeta = format => {
   format.container = format.mimeType ?
     format.mimeType.split(';')[0].split('/')[1] : null;
   format.codecs = format.mimeType ?
-    exports.between(format.mimeType, 'codecs="', '"') : null;
+    between(format.mimeType, 'codecs="', '"') : null;
   format.live = /\/source\/yt_live_broadcast\//.test(format.url);
   format.isHLS = /\/manifest\/hls_(variant|playlist)\//.test(format.url);
   format.isDashMPD = /\/manifest\/dash\//.test(format.url);
