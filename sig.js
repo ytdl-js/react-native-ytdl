@@ -1,5 +1,6 @@
 this.cache = new Map();
 import util from './util';
+const querystring = require('querystring');
 
 /**
  * Extract signature deciphering tokens from html5player file.
@@ -262,6 +263,10 @@ const setDownloadURL = (format, sig, debug) => {
  */
 const decipherFormats = (formats, tokens, debug) => {
   formats.forEach((format) => {
+    if (format.cipher) {
+      Object.assign(format, querystring.parse(format.cipher));
+      delete format.cipher;
+    }
     const sig = tokens && format.s ? decipher(tokens, format.s) : null;
     setDownloadURL(format, sig, debug);
   });
