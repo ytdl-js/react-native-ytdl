@@ -28,20 +28,12 @@ const videoEncodingRanks = {
  * @param {Object} b
  */
 const sortFormats = (a, b) => {
-  const ares = a.resolution ? parseInt(a.resolution.slice(0, -1), 10) : 0;
-  const bres = b.resolution ? parseInt(b.resolution.slice(0, -1), 10) : 0;
+  const ares = a.qualityLabel ? parseInt(a.qualityLabel.slice(0, -1)) : 0;
+  const bres = b.qualityLabel ? parseInt(b.qualityLabel.slice(0, -1)) : 0;
   const afeats = ~~!!ares * 2 + ~~!!a.audioBitrate;
   const bfeats = ~~!!bres * 2 + ~~!!b.audioBitrate;
 
-  const getBitrate = (c) => {
-    if (c.bitrate) {
-      let s = c.bitrate.split('-');
-      return parseFloat(s[s.length - 1], 10);
-    } else {
-      return 0;
-    }
-  };
-
+  const getBitrate = (c) => parseInt(c.bitrate) || 0;
   const audioScore = (c) => {
     const abitrate = c.audioBitrate || 0;
     const aenc = audioEncodingRanks[c.audioEncoding] || 0;
@@ -95,10 +87,7 @@ const chooseFormat = (formats, options) => {
 
   let format;
   const quality = options.quality || 'highest';
-  const getBitrate = (f) => {
-    let s = f.bitrate.split('-');
-    return parseFloat(s[s.length - 1], 10);
-  };
+  const getBitrate = (f) => parseInt(f.bitrate);
   switch (quality) {
     case 'highest':
       format = formats[0];
@@ -112,8 +101,8 @@ const chooseFormat = (formats, options) => {
       formats = filterFormats(formats, 'audio');
       format = null;
       for (let f of formats) {
-        if (!format 
-          || f.audioBitrate > format.audioBitrate 
+        if (!format
+          || f.audioBitrate > format.audioBitrate
           || (f.audioBitrate === format.audioBitrate && format.encoding && !f.encoding))
           format = f;
       }
@@ -129,12 +118,12 @@ const chooseFormat = (formats, options) => {
             format = f;
         }
         break;
-  
+
     case 'highestvideo':
       formats = filterFormats(formats, 'video');
       format = null;
       for (let f of formats) {
-        if (!format 
+        if (!format
           || getBitrate(f) > getBitrate(format)
           || (getBitrate(f) === getBitrate(format) && format.audioEncoding && !f.audioEncoding))
           format = f;
@@ -151,7 +140,7 @@ const chooseFormat = (formats, options) => {
             format = f;
         }
         break;
-  
+
     default: {
       let getFormat = (itag) => {
         return formats.find((format) => format.itag === '' + itag);
@@ -334,14 +323,15 @@ const validateURL = string => {
  * @param {Object} format
  */
 const addFormatMeta = format => {
-  const meta = FORMATS[format.itag];
-  for (let key in meta) {
-    format[key] = meta[key];
-  }
-
+  format = Object.assign({}, FORMATS[format.itag], format);
+  format.container = format.mimeType ?
+    format.mimeType.split(';')[0].split('/')[1] : null;
+  format.codecs = format.mimeType ?
+    between(format.mimeType, 'codecs="', '"') : null;
   format.live = /\/source\/yt_live_broadcast\//.test(format.url);
   format.isHLS = /\/manifest\/hls_(variant|playlist)\//.test(format.url);
   format.isDashMPD = /\/manifest\/dash\//.test(format.url);
+  return format;
 };
 
 

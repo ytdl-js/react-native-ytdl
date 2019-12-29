@@ -4,19 +4,12 @@ const parser = require('react-xml-parser');
 import sig from './sig';
 import util from './util';
 import extras from './info-extras';
-import FORMATS from './formats';
 
 const VIDEO_URL = 'https://www.youtube.com/watch?v=';
 const EMBED_URL = 'https://www.youtube.com/embed/';
 const VIDEO_EURL = 'https://youtube.googleapis.com/v/';
 const INFO_HOST = 'www.youtube.com';
 const INFO_PATH = '/get_video_info';
-const KEYS_TO_SPLIT = [
-   'fmt_list',
-    'fexp',
-    'watermark'
-  ];
-
 
 /**
  * Gets info from a video without getting additional formats.
@@ -38,7 +31,7 @@ const getBasicInfo = (_ID_OR_URL, options, callback) => {
   reqOptions.headers = Object.assign({}, reqOptions.headers, {
     'User-Agent': ''
   });
-  
+
   fetch(url,reqOptions)
     .then(body => body.text())
     .then(body => {
@@ -105,15 +98,14 @@ const getBasicInfo = (_ID_OR_URL, options, callback) => {
  */
 const parseFormats = (info) => {
   let formats = [];
-  if (info.url_encoded_fmt_stream_map) {
-    formats = formats.concat(info.url_encoded_fmt_stream_map.split(','));
+  if (info.player_response.streamingData) {
+    if (info.player_response.streamingData.formats) {
+      formats = formats.concat(info.player_response.streamingData.formats);
+    }
+    if (info.player_response.streamingData.adaptiveFormats) {
+      formats = formats.concat(info.player_response.streamingData.adaptiveFormats);
+    }
   }
-  if (info.adaptive_fmts) {
-    formats = formats.concat(info.adaptive_fmts.split(','));
-  }
-  formats = formats.map((format) => querystring.parse(format));
-  delete info.url_encoded_fmt_stream_map;
-  delete info.adaptive_fmts;
   return formats;
 };
 
@@ -153,39 +145,21 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
     .then(body => body.text())
     .then(body => {
       let info = querystring.parse(body);
+      const player_response = config.args.player_response || info.player_response;
 
-      if (!info.url_encoded_fmt_stream_map && !info.adaptive_fmts &&
-        !info.config && (config.args.fmt_list ||
-        config.args.url_encoded_fmt_stream_map || config.args.adaptive_fmts)) {
-        info = config.args;
-        info.no_embed_allowed = true;
-      } else if (info.status === 'fail') {
+      if (info.status === 'fail') {
           return callback(
             Error(`Code ${info.errorcode}: ${util.stripHTML(info.reason)}`));
-        }
-
-      const player_response = config.args.player_response || info.player_response;
-        try {
-          info.player_response = JSON.parse(player_response);
-        } catch (err) {
-          return callback(
-            Error('Error parsing `player_response`: ' + err.message));
-        }
-        let playability = info.player_response.playabilityStatus;
-        if (playability && playability.status === 'UNPLAYABLE') {
-          return callback(Error(playability.reason));
-        }
-
-      // Split some keys by commas.
-      KEYS_TO_SPLIT.forEach((key) => {
-        if (!info[key]) return;
-        info[key] = info[key]
-          .split(',')
-          .filter((v) => v !== '');
-      });
-
-      info.fmt_list = info.fmt_list ?
-        info.fmt_list.map((format) => format.split('/')) : [];
+      } else try {
+        info.player_response = JSON.parse(player_response);
+      } catch (err) {
+        return callback(
+          Error('Error parsing `player_response`: ' + err.message));
+      }
+      let playability = info.player_response.playabilityStatus;
+      if (playability && playability.status === 'UNPLAYABLE') {
+        return callback(Error(playability.reason));
+      }
 
       info.formats = parseFormats(info);
 
@@ -251,14 +225,7 @@ const getFullInfo = (id, options, callback) => {
           if (results[0]) { mergeFormats(info, results[0]); }
           if (results[1]) { mergeFormats(info, results[1]); }
 
-          if (options.debug) {
-            info.formats.forEach((format) => {
-              const itag = format.itag;
-              if (!FORMATS[itag]) {
-                console.warn(`No format metadata for itag ${itag} found`);
-              }
-            });
-          }
+          info.formats = info.formats.map(util.addFormatMeta);
 
           info.formats.forEach(util.addFormatMeta);
           info.formats.sort(util.sortFormats);
@@ -281,12 +248,9 @@ const getFullInfo = (id, options, callback) => {
  */
 const mergeFormats = (info, formatsMap) => {
   info.formats.forEach((f) => {
-    if (!formatsMap[f.itag]) {
-      formatsMap[f.itag] = f;
-    }
+    formatsMap[f.itag] = f;
   });
-  info.formats = [];
-  for (let itag in formatsMap) { info.formats.push(formatsMap[itag]); }
+  info.formats = Object.values(formatsMap);
 };
 
 
@@ -304,7 +268,7 @@ const getDashManifest = (url, options, callback) => {
   reqOptions.headers = Object.assign({}, reqOptions.headers, {
     "Content-Type": "text/plain;charset=UTF-8"
   });
-  
+
   fetch(url, reqOptions)
     .then(body => body.text())
     .then((chunk) => {
@@ -315,7 +279,7 @@ const getDashManifest = (url, options, callback) => {
             const itag = node.attributes.id;
             formats[itag] = { itag, url };
         });
-      
+
       callback(null, formats);
     })
     .catch(err => {
