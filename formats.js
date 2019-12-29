@@ -1,7 +1,8 @@
 /**
  * http://en.wikipedia.org/wiki/YouTube#Quality_and_formats
  */
-module.exports = {
+export default {
+
   '5': {
     mimeType: 'video/flv; codecs="Sorenson H.283, mp3"',
     qualityLabel: '240p',
