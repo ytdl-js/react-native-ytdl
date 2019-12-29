@@ -1,15 +1,17 @@
-const querystring = require('querystring');
+const querystring = require('query-string');
 const parser = require('react-xml-parser');
 
 import sig from './sig';
 import util from './util';
 import extras from './info-extras';
+import Cache from './cache';
 
 const VIDEO_URL = 'https://www.youtube.com/watch?v=';
 const EMBED_URL = 'https://www.youtube.com/embed/';
 const VIDEO_EURL = 'https://youtube.googleapis.com/v/';
 const INFO_HOST = 'www.youtube.com';
 const INFO_PATH = '/get_video_info';
+
 
 /**
  * Gets info from a video without getting additional formats.
@@ -18,8 +20,7 @@ const INFO_PATH = '/get_video_info';
  * @param {Object} options
  * @param {Function(Error, Object)} callback
  */
-const getBasicInfo = (_ID_OR_URL, options, callback) => {
-  const id = util.getVideoID(_ID_OR_URL)
+exports.getBasicInfo = (id, options, callback) => {
   // Try getting config from the video page first.
   const params = 'hl=' + (options.lang || 'en');
   let url = VIDEO_URL + id + '&' + params +
@@ -148,18 +149,19 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
       const player_response = config.args.player_response || info.player_response;
 
       if (info.status === 'fail') {
-          return callback(
-            Error(`Code ${info.errorcode}: ${util.stripHTML(info.reason)}`));
+        return callback(
+          Error(`Code ${info.errorcode}: ${util.stripHTML(info.reason)}`));
       } else try {
         info.player_response = JSON.parse(player_response);
       } catch (err) {
         return callback(
           Error('Error parsing `player_response`: ' + err.message));
       }
-      let playability = info.player_response.playabilityStatus;
-      if (playability && playability.status === 'UNPLAYABLE') {
-        return callback(Error(playability.reason));
-      }
+
+        let playability = info.player_response.playabilityStatus;
+        if (playability && playability.status === 'UNPLAYABLE') {
+          return callback(Error(playability.reason));
+        }
 
       info.formats = parseFormats(info);
 
@@ -172,9 +174,10 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
 
         // Copy over a few props from `player_response.videoDetails`
         // for backwards compatibility.
-        title: info.player_response.videoDetails.title,
-        length_seconds: info.player_response.videoDetails.lengthSeconds,
+        title: info.player_response.videoDetails && info.player_response.videoDetails.title,
+        length_seconds: info.player_response.videoDetails && info.player_response.videoDetails.lengthSeconds,
       });
+
       info.age_restricted = fromEmbed;
       info.html5player = config.assets.js;
 
@@ -187,16 +190,14 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
 
 
 /**
- * Gets info fro      if (config.args.dashmpd && info.dashmpd !== config.args.dashmpd) {
-        info.dashmpd2 = config.args.dashmpd;
-      }m a video additional formats and deciphered URLs.
+ * Gets info from a video additional formats and deciphered URLs.
  *
  * @param {string} id
  * @param {Object} options
  * @param {Function(Error, Object)} callback
  */
-const getFullInfo = (id, options, callback) => {
-  return getBasicInfo(id, options, (err, info) => {
+exports.getFullInfo = (id, options, callback) => {
+  return exports.getBasicInfo(id, options, (err, info) => {
     if (err) return callback(err);
     const hasManifest =
       info.player_response && info.player_response.streamingData && (
@@ -205,7 +206,6 @@ const getFullInfo = (id, options, callback) => {
       );
     if (info.formats.length || hasManifest) {
       const html5playerfile = 'https://' + INFO_HOST + info.html5player;
-
       sig.getTokens(html5playerfile, options, (err, tokens) => {
         if (err) return callback(err);
 
@@ -226,8 +226,6 @@ const getFullInfo = (id, options, callback) => {
           if (results[1]) { mergeFormats(info, results[1]); }
 
           info.formats = info.formats.map(util.addFormatMeta);
-
-          info.formats.forEach(util.addFormatMeta);
           info.formats.sort(util.sortFormats);
           info.full = true;
           callback(null, info);
@@ -248,7 +246,7 @@ const getFullInfo = (id, options, callback) => {
  */
 const mergeFormats = (info, formatsMap) => {
   info.formats.forEach((f) => {
-    formatsMap[f.itag] = f;
+      formatsMap[f.itag] = f;
   });
   info.formats = Object.values(formatsMap);
 };
@@ -312,5 +310,58 @@ const getM3U8 = (url, options, callback) => {
   });
 };
 
-const info = { getBasicInfo, gotConfig, getFullInfo };
-export default info;
+
+// Cached for getting basic/full info.
+exports.cache = new Cache();
+
+
+// Cache get info functions.
+// In case a user wants to get a video's info before downloading.
+for (let fnName of ['getBasicInfo', 'getFullInfo']) {
+  /**
+   * @param {string} link
+   * @param {Object} options
+   * @param {Function(Error, Object)} callback
+   */
+  const fn = exports[fnName];
+  exports[fnName] = (link, options, callback) => {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    } else if (!options) {
+      options = {};
+    }
+
+    if (!callback) {
+      return new Promise((resolve, reject) => {
+        exports[fnName](link, options, (err, info) => {
+          if (err) return reject(err);
+          resolve(info);
+        });
+      });
+    }
+
+    const id = util.getVideoID(link);
+    if (id instanceof Error) return callback(id);
+
+    const key = [fnName, id, options.lang].join('-');
+    if (exports.cache.get(key)) {
+      Promise.resolve().then(() => callback(null, exports.cache.get(key)));
+    } else {
+      fn(id, options, (err, info) => {
+        if (err) return callback(err);
+        exports.cache.set(key, info);
+        callback(null, info);
+      });
+    }
+  };
+}
+
+
+// Export a few helpers.
+exports.validateID = util.validateID;
+exports.validateURL = util.validateURL;
+exports.getURLVideoID = util.getURLVideoID;
+exports.getVideoID = util.getVideoID;
+
+export default exports;
