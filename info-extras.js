@@ -4,10 +4,12 @@ const Entities = require('html-entities').AllHtmlEntities;
 
 import util from "./util";
 
+
 const VIDEO_URL = 'https://www.youtube.com/watch?v=';
 const getMetaItem = (body, name) => {
   return util.between(body, `<meta itemprop="${name}" content="`, '">');
 };
+
 
 /**
  * Get video description from html
@@ -15,7 +17,7 @@ const getMetaItem = (body, name) => {
  * @param {string} html
  * @return {string}
  */
-const getVideoDescription = (html) => {
+exports.getVideoDescription = (html) => {
   const regex = /<p.*?id="eow-description".*?>(.+?)<\/p>[\n\r\s]*?<\/div>/im;
   const description = html.match(regex);
   return description ?
@@ -28,7 +30,7 @@ const getVideoDescription = (html) => {
  * @param {string} body
  * @return {Object}
  */
-const getVideoMedia = (body) => {
+exports.getVideoMedia = (body) => {
   let mediainfo = util.between(body,
     '<div id="watch-description-extras">',
     '<div id="watch-discussion" class="branded-page-box yt-card">');
@@ -77,7 +79,7 @@ const getVideoMedia = (body) => {
  */
 const userRegexp = /<a href="\/user\/([^"]+)/;
 const verifiedRegexp = /<span .*?(aria-label="Verified")(.*?(?=<\/span>))/;
-const getAuthor = (body) => {
+exports.getAuthor = (body) => {
   let ownerinfo = util.between(body,
     '<div id="watch7-user-header" class=" spf-link ">',
     '<div id="watch8-action-buttons" class="watch-action-buttons clearfix">');
@@ -110,9 +112,10 @@ const getAuthor = (body) => {
  * @param {string} body
  * @return {string}
  */
-const getPublished = (body) => {
+exports.getPublished = (body) => {
   return Date.parse(getMetaItem(body, 'datePublished'));
 };
+
 
 /**
  * Get video published at from html.
@@ -121,23 +124,49 @@ const getPublished = (body) => {
  * @param {string} body
  * @return {Array.<Object>}
  */
-const getRelatedVideos = (body) => {
-  let jsonStr = util.between(body, '\'RELATED_PLAYER_ARGS\': {"rvs":', '},');
+exports.getRelatedVideos = (body) => {
+  let jsonStr = util.between(body, '\'RELATED_PLAYER_ARGS\': ', ',\n');
+  let watchNextJson, rvsParams, secondaryResults;
   try {
     jsonStr = JSON.parse(jsonStr);
-  } catch (err) {
+    watchNextJson = JSON.parse(jsonStr.watch_next_response);
+    rvsParams = jsonStr.rvs.split(',').map((e) => qs.parse(e));
+    secondaryResults = watchNextJson.contents.twoColumnWatchNextResults.secondaryResults.secondaryResults.results;
+  }
+  catch (err) {
     return [];
   }
-  return jsonStr.split(',').map((link) => qs.parse(link));
+  let videos = [];
+  for (let result of secondaryResults) {
+    let details = result.compactVideoRenderer;
+    if (details) {
+      try {
+        let viewCount = details.viewCountText.simpleText;
+        let shortViewCount = details.shortViewCountText.simpleText;
+        let rvsDetails = rvsParams.find((elem) => elem.id === details.videoId);
+        if (!/^\d/.test(shortViewCount)) {
+          shortViewCount = rvsDetails && rvsDetails.short_view_count_text || '';
+        }
+        viewCount = (/^\d/.test(viewCount) ? viewCount : shortViewCount).split(' ')[0];
+        videos.push({
+          id: details.videoId,
+          title: details.title.simpleText,
+          author: details.shortBylineText.runs[0].text,
+          ucid: details.shortBylineText.runs[0].navigationEndpoint.browseEndpoint.browseId,
+          author_thumbnail: details.channelThumbnail.thumbnails[0].url,
+          short_view_count_text: shortViewCount.split(' ')[0],
+          view_count: viewCount.replace(',', ''),
+          length_seconds:  details.lengthText ?
+            Math.floor(util.humanStr(details.lengthText.simpleText) / 1000) :
+            rvsParams && rvsParams.length_seconds + '',
+          video_thumbnail: details.thumbnail.thumbnails[0].url,
+        });
+      } catch (err) {
+        continue;
+      }
+    }
+  }
+  return videos;  
 };
 
-let extras = {
-  getMetaItem,
-  getMetaItem,
-  getVideoDescription,
-  getVideoMedia,
-  getAuthor,
-  getPublished,
-  getRelatedVideos
-};
-export default extras;
+export default exports;
