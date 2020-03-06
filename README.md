@@ -90,7 +90,9 @@ ytdl cannot download videos that fall into the following
 * Private
 * Rentals
 
-YouTube intentionally ratelimits downloads, likely to prevent bandwidth abuse. The download rate is still faster than a media player can play the video, even on 2x. See [#294](https://github.com/fent/node-ytdl-core/issues/294).
+YouTube intentionally rate limits downloads, particularly audio only formats, likely to prevent bandwidth abuse. The download rate is still faster than a media player can play the video, even on 2x. See [#294](https://github.com/fent/node-ytdl-core/issues/294).
+
+Generated download links are valid for 6 hours, for the same IP address.
 
 ## Handling Separate Streams
 
@@ -112,4 +114,4 @@ These tests are not mocked, and they actually try to start downloading a few vid
 
 For getting started with that, you can look at the `extractActions()` function in [`/lib/sig.js`](https://github.com/fent/node-ytdl-core/blob/master/lib/sig.js).
 
-For the sake of fast development time, It is better to debug on node than it is on react-native. When ytdl-core is working as expected then, you can port the neccesary changes into react-native-ytdl
+For the sake of fast development time, It is better to debug on node than it is on react-native. When ytdl-core is working as expected then, you can port the necessary changes into react-native-ytdl
