@@ -80,7 +80,6 @@ exports.getBasicInfo = (id, options, callback) => {
           .then(body => body.text())
           .then(body => {
             config = util.between(body, 't.setConfig({\'PLAYER_CONFIG\': ', /\}(,'|\}\);)/);
-            console.log({config})
             gotConfig(id, options, additional, config, true, callback);
           })
           .catch(err => {
@@ -208,7 +207,6 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
  */
 exports.getFullInfo = (id, options, callback) => {
   return exports.getBasicInfo(id, options, (err, info) => {
-    console.log('getfullinfo')
     if (err) return callback(err);
     const hasManifest =
       info.player_response && info.player_response.streamingData && (
