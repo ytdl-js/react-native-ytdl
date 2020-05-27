@@ -80,6 +80,7 @@ exports.getBasicInfo = (id, options, callback) => {
           .then(body => body.text())
           .then(body => {
             config = util.between(body, 't.setConfig({\'PLAYER_CONFIG\': ', /\}(,'|\}\);)/);
+            console.log({config})
             gotConfig(id, options, additional, config, true, callback);
           })
           .catch(err => {
@@ -107,6 +108,15 @@ const parseFormats = (info) => {
       formats = formats.concat(info.player_response.streamingData.adaptiveFormats);
     }
   }
+
+  formats = formats.map(x => {
+    const {signatureCipher, ...rest} = x;
+    if(signatureCipher) {
+      return {cipher: signatureCipher, ...rest};
+    }
+    return rest;
+  });
+
   return formats;
 };
 
@@ -198,6 +208,7 @@ const gotConfig = (id, options, additional, config, fromEmbed, callback) => {
  */
 exports.getFullInfo = (id, options, callback) => {
   return exports.getBasicInfo(id, options, (err, info) => {
+    console.log('getfullinfo')
     if (err) return callback(err);
     const hasManifest =
       info.player_response && info.player_response.streamingData && (
@@ -224,7 +235,7 @@ exports.getFullInfo = (id, options, callback) => {
           if (err) return callback(err);
           if (results[0]) { mergeFormats(info, results[0]); }
           if (results[1]) { mergeFormats(info, results[1]); }
-
+          
           info.formats = info.formats.map(util.addFormatMeta);
           info.formats.sort(util.sortFormats);
           info.full = true;
