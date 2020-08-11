@@ -48,7 +48,7 @@ Attempts to get a downloadable link from the given YouTube URL. Returns a list o
   ```
 * `format` - Primarily used to download specific video or audio streams. This can be a specific `format` object returned from `getInfo`.
   * Supplying this option will ignore the `filter` and `quality` options since the format is explicitly provided.
-* `range` - A byte range in the form `{start: INT, end: INT}` that specifies part of the file to download, ie {start: 10355705, end: 12452856}.
+* `range` - A byte range in the form `{start: INT, end: INT}` that specifies part of the file to download, ie {start: 10355705, end: 12452856}. Not supported on segmented (DASH MPD, m3u8) formats.
   * This downloads a portion of the file, and not a separately spliced video.
 * `begin` - What time in the video to begin. Supports formats `00:00:00.000`, `0ms, 0s, 0m, 0h`, or number of milliseconds. Example: `1:30`, `05:10.123`, `10m30s`.
   * For live videos, this also accepts a unix timestamp or Date object, and defaults to `Date.now()`.
@@ -114,10 +114,8 @@ Throws an Error if it fails to parse an ID.
 
 ytdl cannot download videos that fall into the following
 * Regionally restricted (requires a [proxy](example/proxy.js))
-* Private
-* Rentals
-
-YouTube intentionally rate limits downloads, particularly audio only formats, likely to prevent bandwidth abuse. The download rate is still faster than a media player can play the video, even on 2x. See [#294](https://github.com/fent/node-ytdl-core/issues/294).
+* Private (if you have access, requires [cookies](example/cookies.js))
+* Rentals (if you have access, requires [cookies](example/cookies.js))
 
 Generated download links are valid for 6 hours, for the same IP address.
 
@@ -129,7 +127,7 @@ Typically 1080p or better video does not have audio encoded with it. The audio m
 
 Youtube updates their website all the time, it's not that rare for this to stop working. If it doesn't work for you and you're using the latest version, feel free to open up an issue. Make sure to check if there isn't one already with the same error.
 
-If you'd like to help fix the issue, look at the type of error first. The most common one is
+If you'd like to help fix the issue, look at the type of error first. If you're getting the following error
 
     Could not extract signature deciphering actions
 
@@ -137,7 +135,7 @@ Run the tests at `test/irl-test.js` located on [the original node implementation
 
     mocha test/irl-test.js
 
-These tests are not mocked, and they actually try to start downloading a few videos. If these fail, then it's time to debug.
+These tests are not mocked, and they try to start downloading a few videos. If these fail, then it's time to debug.
 
 For getting started with that, you can look at the `extractActions()` function in [`/lib/sig.js`](https://github.com/fent/node-ytdl-core/blob/master/lib/sig.js).
 
