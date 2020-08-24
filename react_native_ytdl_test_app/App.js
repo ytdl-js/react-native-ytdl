@@ -31,6 +31,7 @@ import RNFetchBlob from 'rn-fetch-blob';
 
 const runTests = async () => {
   const URL = 'https://www.youtube.com/watch?v=04GiqLjRO3A';
+  let FAILED_TEST_COUNT = 0;
 
   const downloadURLsToFile = (URLs, path, progressCallback) =>
     new Promise(async (resolve, reject) => {
@@ -90,19 +91,20 @@ const runTests = async () => {
       resolve(path);
 
     });
-  const testURLIsValidAndVideoIdIsExtracted = async () => {
+  const testURLIsValidAndVideoIdIsExtracted = () => {
     /**
      * Just Testing getVideoID(URL) with URL input (not videoId) will implicitly test the following as well:
      * - ytdl.validateURL()
      * - ytdl.getURLVideoID()
      */
-    console.log('[TEST] "testURLIsValidAndVideoIdIsExtracted" has started');
-    const videoId = await ytdl.getVideoID(URL);
+    console.log('🚀 [TEST] "testURLIsValidAndVideoIdIsExtracted" has started');
+    const videoId = ytdl.getVideoID(URL);
     if (videoId !== '04GiqLjRO3A') {
-      console.error('[TEST FAILED] "testURLIsValidAndVideoIdIsExtracted"');
-      console.error(`EXPECTED "videoId === '04GiqLjRO3A'" BUT GOT "${videoId}"`);
+      console.error('❌ [TEST FAILED] "testURLIsValidAndVideoIdIsExtracted": ' +
+        `EXPECTED "videoId === '04GiqLjRO3A'" BUT GOT "${videoId}"`);
+      FAILED_TEST_COUNT++;
     } else {
-      console.log('[TEST] "testURLIsValidAndVideoIdIsExtracted" has passed');
+      console.log('✅ [TEST] "testURLIsValidAndVideoIdIsExtracted" has passed');
     }
   };
 
@@ -113,7 +115,7 @@ const runTests = async () => {
      * - ytdl.getInfo()
      * - ytdl.getBasicInfo()
      */
-    console.log('[TEST] "testDownloadableURLIsSavedToFile" has started');
+    console.log('🚀 [TEST] "testDownloadableURLIsSavedToFile" has started');
     const downloadableURLs = await ytdl(URL, { quality: 'highestaudio' });
     const path = RNFetchBlob.fs.dirs.DownloadDir + '/file-name.tmp-ext';
     const savedPath = await downloadURLsToFile(downloadableURLs, path,
@@ -123,10 +125,11 @@ const runTests = async () => {
     const size = fileStat.size;
 
     if (size < 687230) {
-      console.error('[TEST FAILED] "testDownloadableURLIsSavedToFile"');
-      console.error(`EXPECTED "size >= 687230" BUT GOT "${size}"`);
+      console.error('❌ [TEST FAILED] "testDownloadableURLIsSavedToFile": ' +
+        `EXPECTED "size >= 687230" BUT GOT "${size}"`);
+      FAILED_TEST_COUNT++;
     } else {
-      console.log('[TEST] "testDownloadableURLIsSavedToFile" has passed');
+      console.log('✅ [TEST] "testDownloadableURLIsSavedToFile" has passed');
     }
   };
 
@@ -137,13 +140,14 @@ const runTests = async () => {
      *
      * Note: This test needs to be run after fetching a downloadable URL
      */
-    console.log('[TEST] "testCache" has started');
+    console.log('🚀 [TEST] "testCache" has started');
     const cache = ytdl.cache;
     if (!cache.sig || !cache.info) {
-      console.error('[TEST FAILED] "testCache"');
-      console.error(`EXPECTED "cache.sig && cache.info" BUT GOT "cache.sig: ${cache.sig}" cache.info:"${cache.info}"`);
+      console.error('❌ [TEST FAILED] "testCache": ' +
+        `EXPECTED "cache.sig && cache.info" BUT GOT "cache.sig: ${cache.sig}" cache.info:"${cache.info}"`);
+      FAILED_TEST_COUNT++;
     } else {
-      console.log('[TEST] "testCache" has passed');
+      console.log('✅ [TEST] "testCache" has passed');
     }
   };
   console.log('###########################################');
@@ -164,6 +168,7 @@ const runTests = async () => {
   console.log('###########################################');
   console.log('###########################################');
   console.log('####### TESTS HAVE FINISHED RUNNING #######');
+  console.log(`############# ${FAILED_TEST_COUNT} TESTS FAILED `.padEnd(43, '#'));
   console.log('###########################################');
 };
 
