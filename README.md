@@ -113,9 +113,9 @@ Throws an Error if it fails to parse an ID.
 ## Limitations
 
 ytdl cannot download videos that fall into the following
-* Regionally restricted (requires a [proxy](example/proxy.js))
-* Private (if you have access, requires [cookies](example/cookies.js))
-* Rentals (if you have access, requires [cookies](example/cookies.js))
+* Regionally restricted (requires a [proxy](https://github.com/fent/node-ytdl-core/example/proxy.js))
+* Private (if you have access, requires [cookies](https://github.com/fent/node-ytdl-core/example/cookies.js))
+* Rentals (if you have access, requires [cookies](https://github.com/fent/node-ytdl-core/example/cookies.js))
 
 Generated download links are valid for 6 hours, for the same IP address.
 
