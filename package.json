@@ -1,12 +1,11 @@
 {
   "name": "react-native-ytdl",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "YouTube video and audio stream extractor for react native.",
   "main": "index.js",
   "dependencies": {
     "html-entities": "^1.2.1",
     "query-string": "^6.2.0",
-    "react-xml-parser": "^1.1.3",
     "url": "~0.10.1"
   },
   "scripts": {
