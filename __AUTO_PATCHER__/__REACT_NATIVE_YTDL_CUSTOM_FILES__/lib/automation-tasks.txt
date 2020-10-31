@@ -1,0 +1,13 @@
+- modules to redirect
+miniget -> /__AUTO_PATCHER__/lib/__REACT_NATIVE_YTDL_CUSTOM_FILES__/__REACT_NATIVE_YTDL_CUSTOM_MODULES__/miniget
+m3u8stream/dist/parse-time -> /__AUTO_PATCHER__/__REACT_NATIVE_YTDL_CUSTOM_FILES__/lib/__REACT_NATIVE_YTDL_CUSTOM_MODULES__/m3u8stream-parse-time
+sax -> /__AUTO_PATCHER__/__REACT_NATIVE_YTDL_CUSTOM_FILES__/lib/__REACT_NATIVE_YTDL_CUSTOM_MODULES__/sax
+
+
+/**
+ * NOTE: these files will need manual review every time they are updated on node-ytdl-core
+ **/
+- files to be replaced 
+/lib/index.js -> /__AUTO_PATCHER__/__REACT_NATIVE_YTDL_CUSTOM_FILES__/lib/index.js
+/README.md -> /__AUTO_PATCHER__/__REACT_NATIVE_YTDL_CUSTOM_FILES__/README.md
+/index.js -> /__AUTO_PATCHER__/__REACT_NATIVE_YTDL_CUSTOM_FILES__/index.js
