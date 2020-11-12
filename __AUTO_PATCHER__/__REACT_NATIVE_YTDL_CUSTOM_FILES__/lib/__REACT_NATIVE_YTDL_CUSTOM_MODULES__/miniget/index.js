@@ -16,7 +16,7 @@ const miniget = (url, reqOptions = {}) => {
     return {
         on: (event, callback) => {
             switch (event) {
-                case 'chunk': fetchPromiseText.then(callback); break;
+                case 'data': fetchPromiseText.then(callback); break;
                 case 'error': fetchPromiseText.catch(callback); break;
                 case 'end': fetchPromiseText.finally(callback); break;
 
