@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AbelTesfaye/react-native-ytdl.git"
+    "url": "git+https://github.com/ytdl-js/react-native-ytdl.git"
   },
   "keywords": [
     "react",
@@ -34,7 +34,7 @@
   "author": "Abel Tesfaye",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/AbelTesfaye/react-native-ytdl/issues"
+    "url": "https://github.com/ytdl-js/react-native-ytdl/issues"
   },
-  "homepage": "https://github.com/AbelTesfaye/react-native-ytdl#readme"
+  "homepage": "https://github.com/ytdl-js/react-native-ytdl#readme"
 }
