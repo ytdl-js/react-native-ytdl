@@ -39,7 +39,7 @@ miniget.MinigetError = class MinigetError extends Error {
     }
 }
 
-miniget.Defaults = {
+miniget.defaultOptions = {
     maxRedirects: 10,
     maxRetries: 5,
     maxReconnects: 0,
