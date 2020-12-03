@@ -2,6 +2,8 @@
  * A minimal working polyfill of miniget that doesn't use node's streaming api
  */
 
+const retryStatusCodes = new Set([429, 503]);
+
 const miniget = (url, reqOptions = {}) => {
 
     const fetchOptions = { ...reqOptions };
@@ -11,6 +13,13 @@ const miniget = (url, reqOptions = {}) => {
     }
 
     const fetchPromiseText = fetch(url, fetchOptions)
+        .then(res => {
+            if(retryStatusCodes.has(res.status)){
+                throw Error(`Error: Status code: ${res.status}`)
+            }
+
+            return res;
+        })
         .then(res => res.text())
 
     return {
