@@ -5,7 +5,7 @@
 
 const CUSTOM_MODULE_IMPLEMENTATIONS = {
     "miniget": "./__REACT_NATIVE_YTDL_CUSTOM_MODULES__/miniget",
-    "m3u8stream/dist/parse-time": "./__REACT_NATIVE_YTDL_CUSTOM_MODULES__/m3u8stream-parse-time",
+    "m3u8stream": "./__REACT_NATIVE_YTDL_CUSTOM_MODULES__/m3u8stream",
     "sax": "./__REACT_NATIVE_YTDL_CUSTOM_MODULES__/sax"
 };
 
@@ -13,7 +13,7 @@ module.exports = function (fileInfo, api, options) {
 
     const j = api.jscodeshift;
 
-    console.log(`transform.js: processing "${fileInfo.path})"`)
+    console.log(`use_custom_module_implementations_transform.js: processing "${fileInfo.path}"`)
 
     return j(fileInfo.source)
         .find(j.CallExpression)
@@ -29,7 +29,7 @@ module.exports = function (fileInfo, api, options) {
                 return;
             }
 
-            console.log('\x1b[33m%s\x1b[0m', `transform.js: redirecting module "${path.value.arguments[0].value}" to "${CUSTOM_MODULE_IMPLEMENTATIONS[path.value.arguments[0].value]}"`);
+            console.log('\x1b[33m%s\x1b[0m', `use_custom_module_implementations_transform.js: redirecting module "${path.value.arguments[0].value}" to "${CUSTOM_MODULE_IMPLEMENTATIONS[path.value.arguments[0].value]}"`);
 
             path.value.arguments[0].value = CUSTOM_MODULE_IMPLEMENTATIONS[path.value.arguments[0].value];
 
