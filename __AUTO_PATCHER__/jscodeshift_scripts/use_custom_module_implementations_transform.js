@@ -8,6 +8,7 @@ const CUSTOM_MODULE_IMPLEMENTATIONS = {
     "m3u8stream": "./__REACT_NATIVE_YTDL_CUSTOM_MODULES__/m3u8stream",
     "sax": "./__REACT_NATIVE_YTDL_CUSTOM_MODULES__/sax",
     "timers": "./__REACT_NATIVE_YTDL_CUSTOM_MODULES__/timers",
+    "url": "./__REACT_NATIVE_YTDL_CUSTOM_MODULES__/url",
 };
 
 module.exports = function (fileInfo, api, options) {
