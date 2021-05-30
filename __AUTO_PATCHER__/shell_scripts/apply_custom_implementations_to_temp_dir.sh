@@ -11,3 +11,6 @@ jscodeshift -t __AUTO_PATCHER__/jscodeshift_scripts/use_custom_module_implementa
 
 # change warning to react-native-ytdl equivalent
 jscodeshift -t __AUTO_PATCHER__/jscodeshift_scripts/change_update_warning_transform.js __AUTO_PATCHER__/tmp/__AUTO_PATCHER_OUTPUT__/lib/utils.js
+
+# add new modules
+jscodeshift -t __AUTO_PATCHER__/jscodeshift_scripts/add_modules_transform.js __AUTO_PATCHER__/tmp/__AUTO_PATCHER_OUTPUT__/
