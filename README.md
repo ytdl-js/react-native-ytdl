@@ -1,3 +1,5 @@
+# ⚠️⚠️⚠️ This project has been discontinued ⚠️⚠️⚠️
+
 # react-native-ytdl
 
 YouTube video and audio stream extractor for react native.
